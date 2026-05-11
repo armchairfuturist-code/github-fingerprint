@@ -1,0 +1,12 @@
+{
+  "primary": "M001",
+  "milestones": {
+    "M001": { "gate": "discussed", "context": "full" },
+    "M002": { "gate": "drafted",   "context": "draft" },
+    "M003": { "gate": "drafted",   "context": "draft" },
+    "M004": { "gate": "drafted",   "context": "draft" },
+    "M005": { "gate": "drafted",   "context": "draft" }
+  },
+  "total": 5,
+  "gates_completed": 5
+}
