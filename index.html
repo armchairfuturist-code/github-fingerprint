@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Fingerprint — Work Speaks</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #0a0a0b;
+            --surface: #141416;
+            --border: #2a2a2e;
+            --text: #e4e4e7;
+            --text-dim: #71717a;
+            --accent: #22c55e;
+            --accent-dim: #166534;
+        }
+        
+        body {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+        
+        .tagline {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 14px 16px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        button {
+            width: 100%;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 16px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .result {
+            margin-top: 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            display: none;
+        }
+        
+        .result.visible { display: block; }
+        
+        .score {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+        
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-left: 8px;
+        }
+        
+        .reasons {
+            list-style: none;
+        }
+        
+        .reasons li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .reasons li:last-child { border: none; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            display: none;
+        }
+        
+        .loading.visible { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GitHub Fingerprint</h1>
+        <p class="tagline">Let your code speak. No profile needed.</p>
+        
+        <div class="form-group">
+            <label>GitHub Username</label>
+            <input type="text" id="username" placeholder="e.g. torvalds">
+        </div>
+        
+        <div class="form-group">
+            <label>Role Description</label>
+            <textarea id="role" placeholder="e.g. Senior backend engineer to build APIs with Python and PostgreSQL"></textarea>
+        </div>
+        
+        <button onclick="match()">Find Match</button>
+        
+        <div class="loading" id="loading">Analyzing GitHub activity...</div>
+        
+        <div class="result" id="result">
+            <div class="score">
+                <span id="score">0</span><span class="score">%</span>
+                <span class="score-label">match</span>
+            </div>
+            <ul class="reasons" id="reasons"></ul>
+        </div>
+    </div>
+    
+    <script>
+        async function match() {
+            const username = document.getElementById('username').value.trim();
+            const role = document.getElementById('role').value.trim();
+            
+            if (!username || !role) {
+                alert('Please fill in both fields');
+                return;
+            }
+            
+            document.getElementById('loading').classList.add('visible');
+            document.getElementById('result').classList.remove('visible');
+            
+            try {
+                const res = await fetch(`/api/match/${encodeURIComponent(username)}?role=${encodeURIComponent(role)}`);
+                const data = await res.json();
+                
+                document.getElementById('score').textContent = data.match_score;
+                
+                const reasons = document.getElementById('reasons');
+                reasons.innerHTML = data.top_reasons.map(r => `<li>${r}</li>`).join('');
+                
+                document.getElementById('result').classList.add('visible');
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                document.getElementById('loading').classList.remove('visible');
+            }
+        }
+    </script>
+</body>
+</html>
