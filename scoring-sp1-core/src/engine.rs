@@ -299,9 +299,51 @@ fn ai_usage_patterns(commits: &[scoring_types::CommitData]) -> SignalScore {
     if commits.is_empty() { return SignalScore::new("ai_usage_patterns", 50.0, 0.0, v(&[("message", j("No commits"))])); }
     let n = commits.len() as f64;
     let lens: Vec<f64> = commits.iter().map(|c| c.message.len() as f64).collect();
-    let avg: f64 = lens.iter().sum::<f64>() / n;
-    let var = lens.iter().map(|l| (l - avg).powi(2)).sum::<f64>() / n; let std = var.sqrt();
+    let avg_len: f64 = lens.iter().sum::<f64>() / n;
+    let var = lens.iter().map(|l| (l - avg_len).powi(2)).sum::<f64>() / n; let std = var.sqrt();
     let style = if std < 5.0 { 5.0 } else if std < 10.0 { 20.0 } else if std < 30.0 { 35.0 } else if std < 50.0 { 25.0 } else { 15.0 };
+
+    // ---- Timing cluster analysis ----
+    let mut sorted: Vec<_> = commits.iter().collect();
+    sorted.sort_by_key(|c| &c.date);
+
+    let timing_score: f64 = if sorted.len() >= 2 {
+        let mut time_diffs: Vec<f64> = Vec::new();
+        for i in 1..sorted.len() {
+            if let (Some(t1), Some(t2)) = (date_parser::parse_timestamp(&sorted[i-1].date), date_parser::parse_timestamp(&sorted[i].date)) {
+                time_diffs.push((t2 - t1) as f64);
+            }
+        }
+
+        if time_diffs.is_empty() {
+            20.0
+        } else {
+            let avg_diff: f64 = time_diffs.iter().sum::<f64>() / time_diffs.len() as f64;
+
+            // Detect burst clusters
+            let mut burst_clusters = 0i64;
+            let mut current_cluster = 1;
+            for diff in &time_diffs {
+                if *diff < 60.0 { current_cluster += 1; }
+                else {
+                    if current_cluster > 3 { burst_clusters += current_cluster; }
+                    current_cluster = 1;
+                }
+            }
+            if current_cluster > 3 { burst_clusters += current_cluster; }
+
+            let br = burst_clusters as f64 / n;
+            if br > 0.5 { 5.0 }
+            else if br > 0.3 { 20.0 }
+            else if br < 0.1 && avg_diff > 3600.0 { 35.0 }
+            else if br < 0.2 { 30.0 }
+            else { 25.0 }
+        }
+    } else {
+        20.0
+    };
+
+    // ---- Conventional commit consistency ----
     let cc = ["feat","fix","docs","style","refactor","perf","test","build","ci","chore","revert"];
     let ccn = commits.iter().filter(|c| {
         c.message.find(':').map(|p| {
@@ -311,7 +353,7 @@ fn ai_usage_patterns(commits: &[scoring_types::CommitData]) -> SignalScore {
     }).count();
     let ccr = ccn as f64 / n;
     let ccs = if ccr > 0.95 && commits.len() >= 5 { 10.0 } else if ccr > 0.80 { 20.0 } else if ccr > 0.40 { 30.0 } else if ccr > 0.10 { 25.0 } else { 20.0 };
-    let score = (style + 25.0_f64 + ccs).min(100.0);
+    let score = (style + timing_score + ccs).min(100.0);
     SignalScore::new("ai_usage_patterns", score, (0.85_f64).min(0.2 + (commits.len() as f64/100.0)*0.5),
-        v(&[("total_commits", j(commits.len())), ("conventional_commit_ratio", j((ccr*100.0).round()/100.0))]))
+        v(&[("total_commits", j(commits.len())), ("msg_length_std", j((std*10.0).round()/10.0)), ("avg_msg_length", j((avg_len*10.0).round()/10.0)), ("conventional_commit_ratio", j((ccr*100.0).round()/100.0))]))
 }
