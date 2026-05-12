@@ -6,19 +6,26 @@
     <title>GitHub Fingerprint — Work Speaks</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         :root {
             --bg: #0a0a0b;
             --surface: #141416;
+            --surface-hover: #1c1c1f;
             --border: #2a2a2e;
+            --border-focus: #22c55e;
             --text: #e4e4e7;
             --text-dim: #71717a;
+            --text-muted: #52525b;
             --accent: #22c55e;
             --accent-dim: #166534;
+            --accent-glow: rgba(34, 197, 94, 0.15);
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
         }
-        
+
         body {
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -27,180 +34,949 @@
             align-items: center;
             padding: 60px 20px;
         }
-        
+
         .container {
-            max-width: 600px;
+            max-width: 680px;
             width: 100%;
         }
-        
+
         h1 {
             font-size: 1.8rem;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             letter-spacing: -0.02em;
         }
-        
+
         .tagline {
             color: var(--text-dim);
-            font-size: 0.9rem;
-            margin-bottom: 40px;
+            font-size: 0.85rem;
+            margin-bottom: 36px;
         }
-        
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 10px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+            margin-bottom: -1px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Form elements */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
-        
+
         label {
             display: block;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             color: var(--text-dim);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
-        
-        input, textarea {
+
+        input, textarea, select {
             width: 100%;
             background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 14px 16px;
+            padding: 12px 14px;
             font-family: inherit;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             border-radius: 8px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        
-        input:focus, textarea:focus {
+
+        input:focus, textarea:focus, select:focus {
             outline: none;
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
         }
-        
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            cursor: pointer;
+        }
+
+        select option {
+            background: var(--surface);
+            color: var(--text);
+        }
+
         textarea {
-            min-height: 120px;
+            min-height: 90px;
             resize: vertical;
         }
-        
-        button {
+
+        .btn {
             width: 100%;
             background: var(--accent);
             color: #000;
             border: none;
-            padding: 16px;
+            padding: 14px;
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.1s;
         }
-        
-        button:hover { opacity: 0.9; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .result {
-            margin-top: 40px;
+
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.99); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-dim);
+            display: none;
+            font-size: 0.85rem;
+        }
+
+        .loading.visible { display: block; }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Error */
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: var(--red);
+            font-size: 0.85rem;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .error.visible { display: block; }
+
+        /* Results */
+        .result-card {
+            margin-top: 28px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 24px;
             display: none;
+            animation: fadeIn 0.3s ease;
         }
-        
-        .result.visible { display: block; }
-        
-        .score {
+
+        .result-card.visible { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Score hero */
+        .score-hero {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+
+        .score-value {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .score-unit {
+            font-size: 1.2rem;
+            color: var(--accent-dim);
+            font-weight: 600;
+        }
+
+        .score-meta {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .score-profile {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .score-username {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        /* Signal bars */
+        .signals-section {
+            margin-top: 20px;
+        }
+
+        .signals-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .signal-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+        }
+
+        .signal-name {
+            width: 160px;
+            flex-shrink: 0;
+            color: var(--text-dim);
+            text-align: right;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .signal-bar-wrap {
+            flex: 1;
+            height: 18px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .signal-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+            min-width: 2px;
+        }
+
+        .signal-bar.high { background: var(--accent); }
+        .signal-bar.medium { background: var(--amber); }
+        .signal-bar.low { background: var(--red); }
+
+        .signal-score {
+            width: 32px;
+            flex-shrink: 0;
+            text-align: right;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+
+        .signal-conf {
+            width: 36px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Risk flags */
+        .risk-section {
+            margin-top: 20px;
+        }
+
+        .risk-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--amber);
+            margin-bottom: 10px;
+        }
+
+        .risk-list {
+            list-style: none;
+        }
+
+        .risk-list li {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: rgba(245, 158, 11, 0.08);
+            border-left: 3px solid var(--amber);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--amber);
+        }
+
+        .no-risks {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            padding: 8px 0;
+        }
+
+        /* Attestation block */
+        .attestation-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .attest-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .attest-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+        }
+
+        .attest-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .attest-btn {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 0.7rem;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .attest-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .attest-btn.copied {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .attest-fields {
+            margin-top: 12px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .attest-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+
+        .attest-label {
+            color: var(--text-muted);
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .attest-value {
+            color: var(--text-dim);
+            word-break: break-all;
+        }
+
+        /* Match results */
+        .match-score {
             font-size: 3rem;
             font-weight: 700;
             color: var(--accent);
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
-        
-        .score-label {
+
+        .match-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .reasons-list {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .reasons-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+
+        .reasons-list li:last-child { border: none; }
+
+        .match-overview {
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
             font-size: 0.8rem;
             color: var(--text-dim);
-            margin-left: 8px;
         }
-        
-        .reasons {
-            list-style: none;
+
+        /* Copy toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: #000;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
         }
-        
-        .reasons li {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
+
+        .toast.visible { opacity: 1; }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            body { padding: 32px 14px; }
+            h1 { font-size: 1.4rem; }
+            .score-value { font-size: 2.5rem; }
+            .signal-name { width: 100px; font-size: 0.65rem; }
+            .score-hero { flex-wrap: wrap; }
+            .score-meta { margin-left: 0; width: 100%; text-align: left; margin-top: 4px; }
+            .tabs { overflow-x: auto; }
+            .tab-btn { padding: 10px 16px; font-size: 0.75rem; }
         }
-        
-        .reasons li:last-child { border: none; }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-dim);
-            display: none;
-        }
-        
-        .loading.visible { display: block; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>GitHub Fingerprint</h1>
         <p class="tagline">Let your code speak. No profile needed.</p>
-        
-        <div class="form-group">
-            <label>GitHub Username</label>
-            <input type="text" id="username" placeholder="e.g. torvalds">
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="score" onclick="switchTab('score')">Score</button>
+            <button class="tab-btn" data-tab="match" onclick="switchTab('match')">Match</button>
         </div>
-        
-        <div class="form-group">
-            <label>Role Description</label>
-            <textarea id="role" placeholder="e.g. Senior backend engineer to build APIs with Python and PostgreSQL"></textarea>
-        </div>
-        
-        <button onclick="match()">Find Match</button>
-        
-        <div class="loading" id="loading">Analyzing GitHub activity...</div>
-        
-        <div class="result" id="result">
-            <div class="score">
-                <span id="score">0</span><span class="score">%</span>
-                <span class="score-label">match</span>
+
+        <!-- ====== SCORE TAB ====== -->
+        <div class="tab-content active" id="tab-score">
+            <div class="form-group">
+                <label for="score-username">GitHub Username</label>
+                <input type="text" id="score-username" placeholder="e.g. torvalds">
             </div>
-            <ul class="reasons" id="reasons"></ul>
+
+            <div class="form-group">
+                <label for="score-role">Role Profile</label>
+                <select id="score-role">
+                    <option value="">— Auto-detect —</option>
+                </select>
+            </div>
+
+            <button class="btn" onclick="getScore()" id="score-btn">Score Profile</button>
+
+            <div class="loading" id="score-loading">
+                <span class="spinner"></span> Crawling GitHub activity &amp; computing signals...
+            </div>
+
+            <div class="error" id="score-error"></div>
+
+            <div class="result-card" id="score-result">
+                <div class="score-hero">
+                    <div>
+                        <span class="score-value" id="score-val">0</span>
+                        <span class="score-unit">/100</span>
+                    </div>
+                    <div class="score-meta">
+                        <div class="score-username" id="score-user">—</div>
+                        <div class="score-profile" id="score-profile-name">—</div>
+                    </div>
+                </div>
+
+                <div class="signals-section">
+                    <div class="signals-title">Signal Breakdown</div>
+                    <div id="signal-bars"></div>
+                </div>
+
+                <div class="risk-section" id="risk-section">
+                    <div class="risk-title">&#9888; Risk Flags</div>
+                    <div id="risk-list"></div>
+                </div>
+
+                <div class="attestation-section" id="attestation-section">
+                    <div class="attest-header">
+                        <div class="attest-title">Attestation</div>
+                        <div class="attest-actions">
+                            <button class="attest-btn" id="copy-attest-btn" onclick="copyAttestation()">Copy Share Data</button>
+                            <button class="attest-btn" id="verify-attest-btn" onclick="verifyAttestation()">Verify</button>
+                        </div>
+                    </div>
+                    <div class="attest-fields" id="attest-fields"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== MATCH TAB ====== -->
+        <div class="tab-content" id="tab-match">
+            <div class="form-group">
+                <label for="match-username">GitHub Username</label>
+                <input type="text" id="match-username" placeholder="e.g. torvalds">
+            </div>
+
+            <div class="form-group">
+                <label for="match-role">Role Description</label>
+                <textarea id="match-role" placeholder="e.g. Senior backend engineer to build APIs with Python and PostgreSQL"></textarea>
+            </div>
+
+            <button class="btn" onclick="match()" id="match-btn">Find Match</button>
+
+            <div class="loading" id="match-loading">
+                <span class="spinner"></span> Analyzing GitHub activity...
+            </div>
+
+            <div class="error" id="match-error"></div>
+
+            <div class="result-card" id="match-result">
+                <div class="match-score" id="match-score-val">0</div>
+                <div class="match-label">match score</div>
+                <ul class="reasons-list" id="match-reasons"></ul>
+                <div class="match-overview" id="match-overview"></div>
+
+                <div class="attestation-section" id="match-attest-section">
+                    <div class="attest-header">
+                        <div class="attest-title">Attestation</div>
+                        <div class="attest-actions">
+                            <button class="attest-btn" id="copy-match-attest-btn" onclick="copyMatchAttestation()">Copy Share Data</button>
+                            <button class="attest-btn" id="verify-match-attest-btn" onclick="verifyMatchAttestation()">Verify</button>
+                        </div>
+                    </div>
+                    <div class="attest-fields" id="match-attest-fields"></div>
+                </div>
+            </div>
         </div>
     </div>
-    
+
+    <div class="toast" id="toast"></div>
+
     <script>
-        async function match() {
-            const username = document.getElementById('username').value.trim();
-            const role = document.getElementById('role').value.trim();
-            
-            if (!username || !role) {
-                alert('Please fill in both fields');
-                return;
-            }
-            
-            document.getElementById('loading').classList.add('visible');
-            document.getElementById('result').classList.remove('visible');
-            
+        // ---- State ----
+        let profiles = [];
+        let lastScoreData = null;
+        let lastMatchData = null;
+
+        const SIGNAL_DISPLAY_NAMES = {
+            commit_consistency: 'Commit Consistency',
+            language_diversity: 'Language Diversity',
+            issue_engagement: 'Issue Engagement',
+            pr_patterns: 'PR Patterns',
+            project_ownership: 'Project Ownership',
+            review_patterns: 'Review Patterns',
+            response_time: 'Response Time',
+            readme_quality: 'README Quality',
+            commit_semantics: 'Commit Semantics',
+            cicd_maturity: 'CI/CD Maturity',
+            contribution_consistency: 'Contribution Consistency',
+            ai_usage_patterns: 'AI Usage Patterns',
+        };
+
+        // ---- Init ----
+        document.addEventListener('DOMContentLoaded', loadProfiles);
+
+        async function loadProfiles() {
             try {
-                const res = await fetch(`/api/match/${encodeURIComponent(username)}?role=${encodeURIComponent(role)}`);
+                const res = await fetch('/profiles');
+                if (!res.ok) throw new Error('Failed to load profiles');
                 const data = await res.json();
-                
-                document.getElementById('score').textContent = data.match_score;
-                
-                const reasons = document.getElementById('reasons');
-                reasons.innerHTML = data.top_reasons.map(r => `<li>${r}</li>`).join('');
-                
-                document.getElementById('result').classList.add('visible');
+                profiles = data.profiles || [];
+                const select = document.getElementById('score-role');
+                profiles.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name;
+                    opt.textContent = p.display_name;
+                    select.appendChild(opt);
+                });
             } catch (e) {
-                alert('Error: ' + e.message);
-            } finally {
-                document.getElementById('loading').classList.remove('visible');
+                console.warn('Could not load profiles:', e.message);
             }
         }
+
+        // ---- Tab switching ----
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
+
+        // ---- Toast ----
+        let toastTimer = null;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('visible'), 2000);
+        }
+
+        // ---- Score mode ----
+        async function getScore() {
+            const username = document.getElementById('score-username').value.trim();
+            const role = document.getElementById('score-role').value;
+
+            if (!username) {
+                showToast('Please enter a GitHub username');
+                return;
+            }
+
+            const btn = document.getElementById('score-btn');
+            const loading = document.getElementById('score-loading');
+            const error = document.getElementById('score-error');
+            const result = document.getElementById('score-result');
+
+            btn.disabled = true;
+            loading.classList.add('visible');
+            error.classList.remove('visible');
+            result.classList.remove('visible');
+
+            try {
+                let url = `/score/${encodeURIComponent(username)}`;
+                if (role) url += `?role=${encodeURIComponent(role)}`;
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+
+                lastScoreData = data;
+                renderScoreResult(data);
+                result.classList.add('visible');
+            } catch (e) {
+                error.textContent = 'Error: ' + e.message;
+                error.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+                loading.classList.remove('visible');
+            }
+        }
+
+        function renderScoreResult(data) {
+            // Score hero
+            document.getElementById('score-val').textContent = Math.round(data.overall_score);
+            document.getElementById('score-user').textContent = '@' + data.username;
+            document.getElementById('score-profile-name').textContent = data.profile || '—';
+
+            // Signal bars
+            const signalsContainer = document.getElementById('signal-bars');
+            signalsContainer.innerHTML = '';
+
+            const signalEntries = Object.entries(data.signal_scores || {});
+
+            signalEntries.forEach(([name, sig]) => {
+                const score = typeof sig.score === 'number' ? sig.score : 0;
+                const confidence = typeof sig.confidence === 'number' ? sig.confidence : 0;
+                const scoreInt = Math.round(score);
+                const confPct = Math.round(confidence * 100);
+
+                let cls = 'low';
+                if (score >= 66) cls = 'high';
+                else if (score >= 33) cls = 'medium';
+
+                const displayName = SIGNAL_DISPLAY_NAMES[name] || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                const row = document.createElement('div');
+                row.className = 'signal-row';
+                row.innerHTML = `
+                    <div class="signal-name" title="${name}">${displayName}</div>
+                    <div class="signal-bar-wrap">
+                        <div class="signal-bar ${cls}" style="width:${scoreInt}%"></div>
+                    </div>
+                    <div class="signal-score">${scoreInt}</div>
+                    <div class="signal-conf" title="confidence">${confPct}%</div>
+                `;
+                signalsContainer.appendChild(row);
+            });
+
+            // Risk flags
+            const riskList = document.getElementById('risk-list');
+            const risks = data.risk_flags || [];
+            if (risks.length === 0) {
+                riskList.innerHTML = '<div class="no-risks">No risk flags detected</div>';
+            } else {
+                riskList.innerHTML = risks.map(r => `<li>${r}</li>`).join('');
+            }
+
+            // Attestation
+            renderAttestation(data.attestation, 'attest-fields');
+        }
+
+        // ---- Attestation rendering ----
+        function renderAttestation(att, containerId) {
+            const container = document.getElementById(containerId);
+            const section = container.closest('.attestation-section');
+
+            if (!att || !att.signature) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+
+            const sig = truncateStr(att.signature, 32);
+            const pubKey = truncateStr(att.public_key, 28);
+            const ts = formatTimestamp(att.signed_at);
+
+            container.innerHTML = `
+                <div class="attest-field">
+                    <span class="attest-label">Signature</span>
+                    <span class="attest-value">${sig}</span>
+                </div>
+                <div class="attest-field">
+                    <span class="attest-label">Public Key</span>
+                    <span class="attest-value">${pubKey}</span>
+                </div>
+                <div class="attest-field">
+                    <span class="attest-label">Signed At</span>
+                    <span class="attest-value">${ts}</span>
+                </div>
+            `;
+        }
+
+        function truncateStr(s, maxLen) {
+            if (!s) return '—';
+            if (s.length <= maxLen) return s;
+            return s.slice(0, Math.floor(maxLen / 2)) + '…' + s.slice(-Math.floor(maxLen / 3));
+        }
+
+        function formatTimestamp(iso) {
+            if (!iso) return '—';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    timeZoneName: 'short'
+                });
+            } catch {
+                return iso;
+            }
+        }
+
+        // ---- Copy attestation (Score) ----
+        function copyAttestation() {
+            if (!lastScoreData || !lastScoreData.attestation) return;
+            copyAttestationData(lastScoreData.attestation, 'copy-attest-btn');
+        }
+
+        function copyAttestationData(att, btnId) {
+            const shareObj = {
+                signature: att.signature,
+                public_key: att.public_key,
+                signed_payload: att.signed_payload,
+                signed_at: att.signed_at,
+            };
+
+            navigator.clipboard.writeText(JSON.stringify(shareObj, null, 2)).then(() => {
+                const btn = document.getElementById(btnId);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                showToast('Attestation data copied to clipboard');
+                setTimeout(() => {
+                    btn.textContent = 'Copy Share Data';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                showToast('Failed to copy');
+            });
+        }
+
+        // ---- Verify attestation (Score) ----
+        async function verifyAttestation() {
+            if (!lastScoreData || !lastScoreData.attestation) return;
+            await runVerify(lastScoreData.attestation, 'verify-attest-btn');
+        }
+
+        async function runVerify(att, btnId) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = true;
+            btn.textContent = 'Verifying…';
+
+            try {
+                const res = await fetch('/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        signed_payload: att.signed_payload,
+                        signature: att.signature,
+                        public_key: att.public_key,
+                    }),
+                });
+                const data = await res.json();
+
+                if (data.valid) {
+                    btn.textContent = '&#10003; Verified';
+                    btn.style.color = 'var(--accent)';
+                    btn.style.borderColor = 'var(--accent)';
+                    showToast('Attestation signature is valid');
+                } else {
+                    btn.textContent = '&#10007; Invalid';
+                    btn.style.color = 'var(--red)';
+                    btn.style.borderColor = 'var(--red)';
+                    showToast('Attestation verification failed');
+                }
+            } catch (e) {
+                btn.textContent = 'Error';
+                showToast('Verification error: ' + e.message);
+            }
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = 'Verify';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }, 3000);
+        }
+
+        // ---- Match mode ----
+        async function match() {
+            const username = document.getElementById('match-username').value.trim();
+            const role = document.getElementById('match-role').value.trim();
+
+            if (!username || !role) {
+                showToast('Please fill in both fields');
+                return;
+            }
+
+            const btn = document.getElementById('match-btn');
+            const loading = document.getElementById('match-loading');
+            const error = document.getElementById('match-error');
+            const result = document.getElementById('match-result');
+
+            btn.disabled = true;
+            loading.classList.add('visible');
+            error.classList.remove('visible');
+            result.classList.remove('visible');
+
+            try {
+                const res = await fetch('/match', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username,
+                        role_description: role,
+                    }),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+
+                lastMatchData = data;
+                renderMatchResult(data);
+                result.classList.add('visible');
+            } catch (e) {
+                error.textContent = 'Error: ' + e.message;
+                error.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+                loading.classList.remove('visible');
+            }
+        }
+
+        function renderMatchResult(data) {
+            document.getElementById('match-score-val').textContent = Math.round(data.match_score);
+
+            const reasons = document.getElementById('match-reasons');
+            reasons.innerHTML = (data.top_reasons || []).map(r => `<li>${r}</li>`).join('');
+
+            const overview = document.getElementById('match-overview');
+            if (data.signal_overview) {
+                const overall = data.signal_overview.overall;
+                const details = data.signal_overview.details || {};
+                overview.innerHTML = `
+                    <div>Overall signal: <strong>${Math.round(overall)}/100</strong></div>
+                    ${details.profile_name ? `<div>Profile: ${details.profile_name}</div>` : ''}
+                `;
+            } else {
+                overview.innerHTML = '';
+            }
+
+            renderAttestation(data.attestation, 'match-attest-fields');
+        }
+
+        function copyMatchAttestation() {
+            if (!lastMatchData || !lastMatchData.attestation) return;
+            copyAttestationData(lastMatchData.attestation, 'copy-match-attest-btn');
+        }
+
+        async function verifyMatchAttestation() {
+            if (!lastMatchData || !lastMatchData.attestation) return;
+            await runVerify(lastMatchData.attestation, 'verify-match-attest-btn');
+        }
+
+        // ---- Enter key support ----
+        document.getElementById('score-username').addEventListener('keydown', e => {
+            if (e.key === 'Enter') getScore();
+        });
+        document.getElementById('match-username').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) match();
+        });
+        document.getElementById('match-role').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) match();
+        });
     </script>
 </body>
 </html>
