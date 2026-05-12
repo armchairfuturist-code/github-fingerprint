@@ -32,7 +32,7 @@ fn extract_all_signals(input: &ScoreInput) -> BTreeMap<String, SignalScore> {
     r.insert("language_diversity".into(), language_diversity(&input.repos));
     r.insert("issue_engagement".into(), issue_engagement(&input.issues));
     r.insert("pr_patterns".into(), pr_patterns(&input.prs));
-    r.insert("project_ownership".into(), project_ownership(&input.repos));
+    r.insert("project_ownership".into(), project_ownership(&input.repos, &input.prs));
     r.insert("review_patterns".into(), review_patterns(&input.prs));
     r.insert("response_time".into(), response_time(&input.prs, &input.issues));
     r.insert("readme_quality".into(), readme_quality(&input.repos, &input.readmes));
@@ -141,7 +141,7 @@ fn pr_patterns(prs: &[scoring_types::PrData]) -> SignalScore {
         v(&[("total_prs", j(prs.len())), ("merged_prs", j(merged))]))
 }
 
-fn project_ownership(repos: &[scoring_types::RepoData]) -> SignalScore {
+fn project_ownership(repos: &[scoring_types::RepoData], _prs: &[scoring_types::PrData]) -> SignalScore {
     if repos.is_empty() { return SignalScore::new("project_ownership", 0.0, 0.0, v(&[("message", j("No repos"))])); }
     let owned = repos.iter().filter(|r| !r.is_fork).count();
     let forked = repos.iter().filter(|r| r.is_fork).count();
@@ -220,7 +220,10 @@ fn commit_semantics(commits: &[scoring_types::CommitData]) -> SignalScore {
     let mut ccnt = 0u64; let mut ml = 0u64; let mut tl: usize = 0; let mut icnt = 0u64;
     for c in commits {
         tl += c.message.len();
-        if let Some(pos) = c.message.find(':') { if cc.iter().any(|t| c.message[..pos].starts_with(t)) { ccnt += 1; } }
+        if let Some(pos) = c.message.find(':') {
+            let prefix = &c.message[..pos];
+            if cc.iter().any(|t| prefix == *t || prefix == &alloc::format!("{}!", t) || prefix.starts_with(&alloc::format!("{}(", t))) { ccnt += 1; }
+        }
         if c.message.contains('\n') && c.message.lines().filter(|l| !l.trim().is_empty()).count() > 1 { ml += 1; }
         if let Some(subj) = c.message.lines().next() {
             let after = subj.find(':').map(|i| &subj[i+1..]).unwrap_or(subj);
@@ -233,7 +236,7 @@ fn commit_semantics(commits: &[scoring_types::CommitData]) -> SignalScore {
     let cr = ccnt as f64 / n; let ar = tl as f64 / n; let mr = ml as f64 / n; let ir = icnt as f64 / n;
     let score = (cr * 30.0 + (ar / 50.0 * 25.0).min(25.0) + mr * 25.0 + ir * 20.0).min(100.0);
     SignalScore::new("commit_semantics", score, (0.9_f64).min(commits.len() as f64 / 100.0),
-        v(&[("total_commits", j(commits.len())), ("conventional_commit_ratio", j((cr*100.0).round()/100.0))]))
+        v(&[("total_commits", j(commits.len())), ("conventional_commit_ratio", j((cr*100.0).round()/100.0)), ("avg_message_length", j((ar*10.0).round()/10.0)), ("multi_line_ratio", j((mr*100.0).round()/100.0)), ("imperative_mood_ratio", j((ir*100.0).round()/100.0))]))
 }
 
 fn cicd_maturity(cicd: &BTreeMap<String, Vec<scoring_types::CicdConfigData>>, repos: &[scoring_types::RepoData]) -> SignalScore {
@@ -301,7 +304,10 @@ fn ai_usage_patterns(commits: &[scoring_types::CommitData]) -> SignalScore {
     let style = if std < 5.0 { 5.0 } else if std < 10.0 { 20.0 } else if std < 30.0 { 35.0 } else if std < 50.0 { 25.0 } else { 15.0 };
     let cc = ["feat","fix","docs","style","refactor","perf","test","build","ci","chore","revert"];
     let ccn = commits.iter().filter(|c| {
-        c.message.find(':').map(|p| cc.iter().any(|t| c.message[..p].starts_with(t))).unwrap_or(false)
+        c.message.find(':').map(|p| {
+            let prefix = &c.message[..p];
+            cc.iter().any(|t| prefix == *t || prefix == &alloc::format!("{}!", t) || prefix.starts_with(&alloc::format!("{}(", t)))
+        }).unwrap_or(false)
     }).count();
     let ccr = ccn as f64 / n;
     let ccs = if ccr > 0.95 && commits.len() >= 5 { 10.0 } else if ccr > 0.80 { 20.0 } else if ccr > 0.40 { 30.0 } else if ccr > 0.10 { 25.0 } else { 20.0 };
