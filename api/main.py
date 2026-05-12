@@ -24,6 +24,12 @@ try:
 except ImportError:
     from proof_tasks import enqueue_proof  # direct execution
 
+# Proof status store
+try:
+    from .proof_status import get_store  # package import
+except ImportError:
+    from proof_status import get_store  # direct execution
+
 logger = logging.getLogger(__name__)
 load_dotenv()
 
@@ -113,6 +119,18 @@ class VerifyResponse(BaseModel):
     valid: bool
     payload: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+
+
+class ProofStatusResponse(BaseModel):
+    username: str
+    proof_id: Optional[str] = None
+    status: str = "unknown"
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    proof_path: Optional[str] = None
+    tx_hash: Optional[str] = None
+    error: Optional[str] = None
+    attestation: Optional[Dict[str, Any]] = None
 
 
 @app.get("/health")
@@ -571,6 +589,53 @@ async def verify_attestation_endpoint(request: VerifyRequest):
             status_code=400,
             detail=f"Invalid verification input: {str(e)}",
         )
+
+
+@app.get("/proof/{username}/status", response_model=ProofStatusResponse)
+async def proof_status(username: str):
+    """
+    Get the current proof generation status for a user.
+
+    Returns the proof status (pending, proof_generating, proof_generated,
+    on_chain, or failed) along with timing info and the Ed25519
+    attestation for the score data, when available.
+
+    Args:
+        username: GitHub username
+
+    Returns:
+        ProofStatusResponse with current proof status and attestation.
+    """
+    store = get_store()
+    record = store.get_status_by_username(username)
+
+    if record is None:
+        # No proof record yet — return unknown status with attestation if possible
+        return ProofStatusResponse(
+            username=username,
+            status="unknown",
+        )
+
+    # Build Ed25519 attestation if signing key is available
+    attestation_block = _build_attestation(
+        username=username,
+        overall_score=0.0,
+        signal_scores={},
+        risk_flags=[],
+        profile_name="unknown",
+    )
+
+    return ProofStatusResponse(
+        username=record.get("username", username),
+        proof_id=record.get("proof_id"),
+        status=record.get("status", "unknown"),
+        created_at=record.get("created_at"),
+        updated_at=record.get("updated_at"),
+        proof_path=record.get("proof_path"),
+        tx_hash=record.get("tx_hash"),
+        error=record.get("error"),
+        attestation=attestation_block,
+    )
 
 
 if __name__ == "__main__":

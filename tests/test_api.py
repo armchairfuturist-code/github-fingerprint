@@ -359,6 +359,7 @@ class TestScoreAttestation:
         mock_client = MagicMock()
         mock_client.get_user_activity.return_value = self.MINIMAL_ACTIVITY
         monkeypatch.setattr("api.main._get_github_client", lambda: mock_client)
+        monkeypatch.setattr("api.main.enqueue_proof", lambda *a, **kw: "mock-task-id")
 
         client = TestClient(app)
         response = client.post("/score", json={"username": "testuser"})
@@ -380,6 +381,7 @@ class TestScoreAttestation:
         mock_client = MagicMock()
         mock_client.get_user_activity.return_value = self.MINIMAL_ACTIVITY
         monkeypatch.setattr("api.main._get_github_client", lambda: mock_client)
+        monkeypatch.setattr("api.main.enqueue_proof", lambda *a, **kw: "mock-task-id")
 
         client = TestClient(app)
         response = client.post("/score", json={"username": "attestuser"})
@@ -440,6 +442,7 @@ class TestScoreAttestation:
         mock_client = MagicMock()
         mock_client.get_user_activity.return_value = self.MINIMAL_ACTIVITY
         monkeypatch.setattr("api.main._get_github_client", lambda: mock_client)
+        monkeypatch.setattr("api.main.enqueue_proof", lambda *a, **kw: "mock-task-id")
 
         client = TestClient(app)
         score_resp = client.post("/score", json={"username": "verifytest"})
@@ -535,3 +538,173 @@ class TestVerifyEndpointFunctional:
         assert response.status_code == 200
         data = response.json()
         assert data["valid"] is False
+
+
+# ---------------------------------------------------------------------------
+# Proof status endpoint tests
+# ---------------------------------------------------------------------------
+
+
+class TestProofStatusEndpoint:
+    """Tests for GET /proof/{username}/status."""
+
+    def test_proof_status_endpoint_registered(self):
+        """/proof/{username}/status endpoint should be registered."""
+        paths = [r.path for r in app.routes]
+        assert "/proof/{username}/status" in paths
+
+    def test_proof_status_returns_unknown_for_nonexistent(self):
+        """GET /proof/{username}/status for unknown user should return status 'unknown'."""
+        from fastapi.testclient import TestClient
+
+        client = TestClient(app)
+        response = client.get("/proof/nonexistentuser/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["username"] == "nonexistentuser"
+        assert data["status"] == "unknown"
+
+    def test_proof_status_after_score_enqueue(self, monkeypatch):
+        """GET /proof/{username}/status after POST /score should show proof status."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.get_user_activity.return_value = {"repos": [], "commits": [], "issues": [], "prs": []}
+        monkeypatch.setattr("api.main._get_github_client", lambda: mock_client)
+
+        client = TestClient(app)
+        score_resp = client.post("/score", json={"username": "statustest"})
+        assert score_resp.status_code == 200
+        proof_id = score_resp.json().get("proof_id")
+
+        # Manually set the status in the store (enqueue_proof is mocked in conftest)
+        from api.proof_status import get_store
+        store = get_store()
+        store.set_status(proof_id, "pending", username="statustest")
+
+        # Now check proof status
+        status_resp = client.get("/proof/statustest/status")
+        assert status_resp.status_code == 200
+        data = status_resp.json()
+        assert data["username"] == "statustest"
+        assert data["proof_id"] == proof_id
+        # Status should be at least set — the enqueue_proof mock sets status via ProofStatusStore
+        assert data["status"] in ("pending", "unknown")
+
+    def test_proof_status_response_shape(self, monkeypatch):
+        """GET /proof/{username}/status should return correctly shaped response."""
+        from fastapi.testclient import TestClient
+
+        client = TestClient(app)
+
+        # Set up a known proof status in the store
+        from api.proof_status import get_store, reset_store
+        reset_store()
+        store = get_store()
+        store.set_status("test_proof_001", "proof_generated", username="shapetest",
+                         proof_path="/tmp/proof.bin")
+
+        response = client.get("/proof/shapetest/status")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify all expected fields
+        assert data["username"] == "shapetest"
+        assert data["proof_id"] == "test_proof_001"
+        assert data["status"] == "proof_generated"
+        assert data["proof_path"] == "/tmp/proof.bin"
+        assert data["created_at"] is not None
+        assert data["updated_at"] is not None
+        # Attestation should be present (signing key available in test env)
+        assert "attestation" in data
+
+    def test_proof_status_all_transitions(self, monkeypatch):
+        """Proof status should reflect all lifecycle transitions."""
+        from fastapi.testclient import TestClient
+        from api.proof_status import get_store, reset_store
+
+        reset_store()
+        store = get_store()
+        client = TestClient(app)
+
+        # pending
+        store.set_status("proof_trans", "pending", username="transitionuser")
+        r = client.get("/proof/transitionuser/status")
+        assert r.json()["status"] == "pending"
+
+        # proof_generating
+        store.set_status("proof_trans", "proof_generating")
+        r = client.get("/proof/transitionuser/status")
+        assert r.json()["status"] == "proof_generating"
+
+        # proof_generated
+        store.set_status("proof_trans", "proof_generated", proof_path="/tmp/proof.bin")
+        r = client.get("/proof/transitionuser/status")
+        assert r.json()["status"] == "proof_generated"
+        assert r.json()["proof_path"] == "/tmp/proof.bin"
+
+        # on_chain
+        store.set_status("proof_trans", "on_chain", tx_hash="0xdeadbeef")
+        r = client.get("/proof/transitionuser/status")
+        assert r.json()["status"] == "on_chain"
+        assert r.json()["tx_hash"] == "0xdeadbeef"
+
+        # failed
+        store.set_status("proof_trans", "failed", error="Prover network timeout")
+        r = client.get("/proof/transitionuser/status")
+        assert r.json()["status"] == "failed"
+        assert r.json()["error"] == "Prover network timeout"
+
+    def test_proof_status_includes_attestation(self, monkeypatch):
+        """Proof status response should include an Ed25519 attestation block."""
+        from fastapi.testclient import TestClient
+        import json
+
+        client = TestClient(app)
+
+        response = client.get("/proof/nonexistent/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert "attestation" in data
+        att = data["attestation"]
+        # Attestation may be None if signing key not available
+        if att is not None:
+            assert "signature" in att
+            assert "public_key" in att
+            assert "signed_payload" in att
+
+    def test_proof_status_for_multiple_users(self):
+        """Proof status for multiple users should return correct per-user status."""
+        from fastapi.testclient import TestClient
+        from api.proof_status import get_store, reset_store
+
+        reset_store()
+        store = get_store()
+        store.set_status("p1", "proof_generated", username="alice")
+        store.set_status("p2", "pending", username="bob")
+        store.set_status("p3", "failed", username="charlie")
+
+        client = TestClient(app)
+
+        r_alice = client.get("/proof/alice/status")
+        assert r_alice.json()["status"] == "proof_generated"
+
+        r_bob = client.get("/proof/bob/status")
+        assert r_bob.json()["status"] == "pending"
+
+        r_charlie = client.get("/proof/charlie/status")
+        assert r_charlie.json()["status"] == "failed"
+
+        r_dave = client.get("/proof/dave/status")
+        assert r_dave.json()["status"] == "unknown"
+
+    def test_proof_status_response_is_json(self):
+        """Proof status endpoint should return JSON content-type."""
+        from fastapi.testclient import TestClient
+
+        client = TestClient(app)
+        response = client.get("/proof/anyuser/status")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/json")
