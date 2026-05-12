@@ -2,7 +2,7 @@
 FastAPI REST endpoint for GitHub fingerprint scoring.
 """
 import logging
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
@@ -17,6 +17,12 @@ from attest import sign_score, load_or_generate_signing_key, verify_attestation
 from crawler.github_api import GitHubAPIClient
 from scoring.engine import ScoringEngine
 from scoring.profiles import list_profiles, resolve_role_profile, get_profile
+
+# Celery async proof generation
+try:
+    from .proof_tasks import enqueue_proof  # package import
+except ImportError:
+    from proof_tasks import enqueue_proof  # direct execution
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -116,16 +122,16 @@ async def health_check():
 
 
 @app.post("/score", response_model=ScoreResponse)
-async def score_user(request: ScoreRequest, background_tasks: BackgroundTasks):
+async def score_user(request: ScoreRequest):
     """
     Score a GitHub user based on their activity.
 
-    After computing the score, enqueues proof generation as a background task.
+    After computing the score, enqueues proof generation as a Celery task.
     The response includes a ``proof_id`` that identifies the proof run.
+    Ed25519 attestation is returned immediately regardless of proof status.
 
     Args:
         request: ScoreRequest with username, optional weights, and optional role
-        background_tasks: FastAPI BackgroundTasks for async proof generation
 
     Returns:
         ScoreResponse with overall score, signal scores, risk flags, details,
@@ -166,26 +172,21 @@ async def score_user(request: ScoreRequest, background_tasks: BackgroundTasks):
             profile_name=profile_name,
         )
 
-        # Generate proof_id and enqueue proof generation as background task
+        # Generate proof_id and enqueue Celery async proof generation
         proof_id = _generate_proof_id(request.username)
 
-        def _fire_proof():
-            """Background wrapper that logs outcome without crashing the response."""
-            try:
-                result = run_proof(request.username, activity_data)
-                logger.info(
-                    "proof_id=%s status=%s proving_time_ms=%d",
-                    proof_id,
-                    result.get("status"),
-                    result.get("proving_time_ms", 0),
-                )
-            except Exception:
-                logger.exception(
-                    "proof_id=%s background proof generation failed",
-                    proof_id,
-                )
-
-        background_tasks.add_task(_fire_proof)
+        try:
+            enqueue_proof(request.username, activity_data, proof_id)
+            logger.info("proof_enqueued: proof_id=%s username=%s", proof_id, request.username)
+        except Exception:
+            logger.exception(
+                "proof_enqueue_failed: proof_id=%s username=%s — "
+                "Ed25519 attestation still returned, Celery/Redis may be down",
+                proof_id,
+                request.username,
+            )
+            # Proof enqueue failure does NOT block the score response.
+            # Ed25519 attestation is returned regardless.
 
         return ScoreResponse(
             username=request.username,
@@ -230,7 +231,7 @@ async def score_user_get(
             weights_dict = json.loads(weights)
 
         request = ScoreRequest(username=username, weights=weights_dict, role=role)
-        return await score_user(request, BackgroundTasks())
+        return await score_user(request)
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid weights JSON")
