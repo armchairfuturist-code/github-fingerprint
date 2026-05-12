@@ -4,16 +4,16 @@
 
 ## Slices
 
-- [ ] **S01: Deep GitHub Pipeline** `risk:high` `depends:[]`
+- [x] **S01: S01** `risk:high` `depends:[]`
   > After this: Crawler fetches README content, detects CI/CD configs, analyzes commit patterns, and caches results for incremental updates.
 
-- [ ] **S02: Role-Adaptive Scoring** `risk:high` `depends:[S01]`
+- [x] **S02: S02** `risk:high` `depends:[]`
   > After this: Scoring engine supports multiple role profiles with different signal weights.
 
-- [ ] **S03: Attestation Upgrade** `risk:low` `depends:[S02]`
+- [x] **S03: S03** `risk:low` `depends:[]`
   > After this: Every score carries an independently verifiable Ed25519 signature covering all signals.
 
-- [ ] **S04: Integration & Polish** `risk:low` `depends:[S01,S03]`
+- [x] **S04: S04** `risk:low` `depends:[]`
   > After this: Full end-to-end flow: enter username → deep crawl → score → attest → share. Returning users get incremental updates.
 
 ## Boundary Map

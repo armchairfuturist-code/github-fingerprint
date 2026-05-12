@@ -1,0 +1,9 @@
+[package]
+name = "scoring-sp1-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+scoring-types = { path = "../scoring-types", default-features = false, features = [] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }

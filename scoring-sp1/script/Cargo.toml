@@ -1,0 +1,13 @@
+[package]
+name = "scoring-sp1-script"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sp1-sdk = { version = "6" }
+serde_json = "1"
+scoring-sp1-core = { path = "../../scoring-sp1-core" }
+
+[[bin]]
+name = "scoring-sp1-script"
+path = "src/main.rs"

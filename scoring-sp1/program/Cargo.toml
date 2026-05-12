@@ -1,0 +1,9 @@
+[package]
+name = "scoring-sp1-program"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sp1-zkvm = { version = "6" }
+scoring-sp1-core = { path = "../../scoring-sp1-core" }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }

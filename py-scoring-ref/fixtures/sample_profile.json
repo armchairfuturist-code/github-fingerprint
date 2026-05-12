@@ -1,0 +1,59 @@
+{
+  "repos": [
+    {"name": "repo1", "full_name": "user/repo1", "description": "A Rust web service", "language": "Rust", "stars": 42, "forks": 10, "is_fork": false, "is_private": false, "pushed_at": "2024-06-01T00:00:00Z"},
+    {"name": "repo2", "full_name": "user/repo2", "description": "Data analysis toolkit", "language": "Python", "stars": 128, "forks": 35, "is_fork": false, "is_private": false, "pushed_at": "2024-06-15T00:00:00Z"},
+    {"name": "repo3", "full_name": "user/repo3", "description": "Frontend components", "language": "TypeScript", "stars": 67, "forks": 15, "is_fork": false, "is_private": false, "pushed_at": "2024-05-20T00:00:00Z"},
+    {"name": "repo4", "full_name": "forked/repo4", "description": "Forked contribution", "language": "Go", "stars": 5, "forks": 1, "is_fork": true, "is_private": false, "pushed_at": "2024-04-10T00:00:00Z"},
+    {"name": "repo5", "full_name": "user/repo5", "description": "CLI tool in Go", "language": "Go", "stars": 23, "forks": 7, "is_fork": false, "is_private": false, "pushed_at": "2024-06-10T00:00:00Z"}
+  ],
+  "commits": [
+    {"sha": "c1", "message": "feat: add user authentication", "author": "user", "date": "2024-06-01T10:00:00Z", "additions": 150, "deletions": 20},
+    {"sha": "c2", "message": "fix: resolve login timeout issue", "author": "user", "date": "2024-06-02T11:30:00Z", "additions": 30, "deletions": 45},
+    {"sha": "c3", "message": "refactor: extract auth middleware", "author": "user", "date": "2024-06-03T09:15:00Z", "additions": 80, "deletions": 60},
+    {"sha": "c4", "message": "feat(api): add rate limiting", "author": "user", "date": "2024-06-05T14:00:00Z", "additions": 200, "deletions": 10},
+    {"sha": "c5", "message": "docs: update README with setup instructions", "author": "user", "date": "2024-06-06T08:00:00Z", "additions": 45, "deletions": 5},
+    {"sha": "c6", "message": "test: add unit tests for auth module", "author": "user", "date": "2024-06-07T16:45:00Z", "additions": 300, "deletions": 0},
+    {"sha": "c7", "message": "chore: bump dependencies", "author": "user", "date": "2024-06-10T10:00:00Z", "additions": 15, "deletions": 15},
+    {"sha": "c8", "message": "feat: implement data export feature", "author": "user", "date": "2024-06-12T13:20:00Z", "additions": 500, "deletions": 30},
+    {"sha": "c9", "message": "fix: correct pagination in API", "author": "user", "date": "2024-06-14T09:00:00Z", "additions": 25, "deletions": 15},
+    {"sha": "c10", "message": "style: format code with prettier", "author": "user", "date": "2024-06-15T11:00:00Z", "additions": 0, "deletions": 0},
+    {"sha": "c11", "message": "perf: optimize database queries", "author": "user", "date": "2024-06-18T15:30:00Z", "additions": 100, "deletions": 200},
+    {"sha": "c12", "message": "ci: add GitHub Actions workflow", "author": "user", "date": "2024-06-20T10:00:00Z", "additions": 50, "deletions": 0}
+  ],
+  "issues": [
+    {"number": 1, "title": "Login fails with special characters", "state": "CLOSED", "created_at": "2024-06-01T08:00:00Z", "closed_at": "2024-06-02T10:00:00Z", "comments": 5, "author": "contributor1"},
+    {"number": 2, "title": "Feature request: dark mode", "state": "OPEN", "created_at": "2024-06-05T12:00:00Z", "closed_at": null, "comments": 3, "author": "contributor2"},
+    {"number": 3, "title": "API returns 500 on empty input", "state": "CLOSED", "created_at": "2024-06-10T09:00:00Z", "closed_at": "2024-06-11T14:00:00Z", "comments": 8, "author": "contributor1"},
+    {"number": 4, "title": "Update dependencies to fix CVE", "state": "CLOSED", "created_at": "2024-06-15T11:00:00Z", "closed_at": "2024-06-15T16:00:00Z", "comments": 2, "author": "user"}
+  ],
+  "prs": [
+    {"number": 101, "title": "Add auth middleware", "state": "MERGED", "created_at": "2024-06-01T10:00:00Z", "closed_at": "2024-06-03T15:00:00Z", "merged_at": "2024-06-03T15:00:00Z", "additions": 200, "deletions": 50, "changed_files": 8, "comments": 3, "review_comments": 5, "author": "user"},
+    {"number": 102, "title": "Fix login timeout", "state": "MERGED", "created_at": "2024-06-02T11:00:00Z", "closed_at": "2024-06-04T09:00:00Z", "merged_at": "2024-06-04T09:00:00Z", "additions": 30, "deletions": 45, "changed_files": 3, "comments": 2, "review_comments": 3, "author": "user"},
+    {"number": 103, "title": "Add rate limiting", "state": "MERGED", "created_at": "2024-06-05T14:00:00Z", "closed_at": "2024-06-07T11:00:00Z", "merged_at": "2024-06-07T11:00:00Z", "additions": 200, "deletions": 10, "changed_files": 5, "comments": 4, "review_comments": 7, "author": "user"},
+    {"number": 104, "title": "Data export feature", "state": "MERGED", "created_at": "2024-06-12T13:00:00Z", "closed_at": "2024-06-16T10:00:00Z", "merged_at": "2024-06-16T10:00:00Z", "additions": 500, "deletions": 30, "changed_files": 12, "comments": 6, "review_comments": 9, "author": "user"},
+    {"number": 105, "title": "Optimize DB queries", "state": "OPEN", "created_at": "2024-06-18T15:00:00Z", "closed_at": null, "merged_at": null, "additions": 100, "deletions": 200, "changed_files": 6, "comments": 1, "review_comments": 2, "author": "user"}
+  ],
+  "readmes": {
+    "user/repo1": {"content": "# Repo1\n\nA Rust web service\n\n## Features\n\n- Authentication\n- Rate limiting\n- Data export\n\n```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n\n## Installation\n\n```bash\ncargo install\n```\n\n- [x] Basic setup\n- [x] Tests\n\n![Build](https://img.shields.io/badge/build-passing-green)\n![License](https://img.shields.io/badge/license-MIT-blue)\n\n🚀 Fast and reliable", "size_bytes": 300, "encoding": "base64", "name": "README.md", "detected_sections": ["Features", "Installation"], "badge_count": 2, "has_code_blocks": true, "code_block_count": 2, "has_emoji": true, "list_count": 3},
+    "user/repo2": {"content": "# Repo2\n\nData analysis toolkit\n\n## Quick Start\n\n1. Install\n2. Configure\n3. Run\n\n```python\nimport analysis\ndf = analysis.load(\"data.csv\")\n```\n\n![PyPI](https://img.shields.io/badge/pypi-v2.0.0-blue)", "size_bytes": 150, "encoding": "base64", "name": "README.md", "detected_sections": ["Quick Start"], "badge_count": 1, "has_code_blocks": true, "code_block_count": 1, "has_emoji": false, "list_count": 3}
+  },
+  "cicd_configs": {
+    "user/repo1": [
+      {"path": ".github/workflows", "config_type": "github_actions", "exists": true, "size_bytes": 0, "content_summary": "directory with 2 file(s)"},
+      {"path": "Dockerfile", "config_type": "docker", "exists": true, "size_bytes": 100, "content_summary": "Dockerfile (100 bytes)"}
+    ],
+    "user/repo2": [
+      {"path": ".github/workflows", "config_type": "github_actions", "exists": true, "size_bytes": 0, "content_summary": "directory with 1 file(s)"}
+    ]
+  },
+  "contributions": {
+    "total_contributions": 450,
+    "contribution_years": [2023, 2024],
+    "contribution_days": [],
+    "weeks_with_contributions": 30,
+    "total_weeks": 52,
+    "first_contribution_date": "2023-01-15T00:00:00Z",
+    "longest_streak": 21,
+    "current_streak": 5
+  }
+}

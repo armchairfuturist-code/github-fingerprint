@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "scoring-types",
+    "scoring-core",
+    "scoring-cli",
+    "scoring-sp1-core",
+]
+resolver = "2"
