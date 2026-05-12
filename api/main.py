@@ -2,13 +2,17 @@
 FastAPI REST endpoint for GitHub fingerprint scoring.
 """
 import logging
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import json
 from dotenv import load_dotenv
 
+try:
+    from .prover_client import run_proof, _generate_proof_id  # package import
+except ImportError:
+    from prover_client import run_proof, _generate_proof_id  # direct execution
 from attest import sign_score, load_or_generate_signing_key, verify_attestation
 from crawler.github_api import GitHubAPIClient
 from scoring.engine import ScoringEngine
@@ -64,6 +68,7 @@ class ScoreResponse(BaseModel):
     details: Dict[str, Any]
     profile: str
     attestation: Optional[Dict[str, Any]] = None
+    proof_id: Optional[str] = None
 
 
 class MatchRequest(BaseModel):
@@ -111,15 +116,20 @@ async def health_check():
 
 
 @app.post("/score", response_model=ScoreResponse)
-async def score_user(request: ScoreRequest):
+async def score_user(request: ScoreRequest, background_tasks: BackgroundTasks):
     """
     Score a GitHub user based on their activity.
 
+    After computing the score, enqueues proof generation as a background task.
+    The response includes a ``proof_id`` that identifies the proof run.
+
     Args:
         request: ScoreRequest with username, optional weights, and optional role
+        background_tasks: FastAPI BackgroundTasks for async proof generation
 
     Returns:
-        ScoreResponse with overall score, signal scores, risk flags, details, and profile
+        ScoreResponse with overall score, signal scores, risk flags, details,
+        profile, attestation, and proof_id.
     """
     try:
         activity_data = _get_github_client().get_user_activity(request.username)
@@ -156,6 +166,27 @@ async def score_user(request: ScoreRequest):
             profile_name=profile_name,
         )
 
+        # Generate proof_id and enqueue proof generation as background task
+        proof_id = _generate_proof_id(request.username)
+
+        def _fire_proof():
+            """Background wrapper that logs outcome without crashing the response."""
+            try:
+                result = run_proof(request.username, activity_data)
+                logger.info(
+                    "proof_id=%s status=%s proving_time_ms=%d",
+                    proof_id,
+                    result.get("status"),
+                    result.get("proving_time_ms", 0),
+                )
+            except Exception:
+                logger.exception(
+                    "proof_id=%s background proof generation failed",
+                    proof_id,
+                )
+
+        background_tasks.add_task(_fire_proof)
+
         return ScoreResponse(
             username=request.username,
             overall_score=score_result.overall_score,
@@ -164,6 +195,7 @@ async def score_user(request: ScoreRequest):
             details=score_result.details,
             profile=profile_name,
             attestation=attestation_block,
+            proof_id=proof_id,
         )
 
     except HTTPException:
@@ -198,7 +230,7 @@ async def score_user_get(
             weights_dict = json.loads(weights)
 
         request = ScoreRequest(username=username, weights=weights_dict, role=role)
-        return await score_user(request)
+        return await score_user(request, BackgroundTasks())
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid weights JSON")
