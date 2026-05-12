@@ -197,19 +197,19 @@ fn readme_quality(repos: &[scoring_types::RepoData], readmes: &BTreeMap<String, 
         return SignalScore::new("readme_quality", score, (0.7_f64).min(repos.len() as f64 / 30.0),
             v(&[("repos_with_description", j(wd)), ("mode", j("description_fallback"))]));
     }
-    let mut rwr = 0i64; let mut tc = 0i64; let mut ts = 0i64; let mut tcb = 0i64; let mut tb = 0i64;
+    let mut rwr = 0i64; let mut tc = 0i64; let mut ts = 0i64; let mut tcb = 0i64; let mut tb = 0i64; let mut repos_with_emoji = 0i64; let mut total_lists = 0i64;
     for repo in repos {
         if let Some(rm) = readmes.get(&repo.full_name) {
-            if rm.content.is_some() { rwr += 1; if let Some(ref c) = rm.content { tc += c.len() as i64; } ts += rm.detected_sections.len() as i64; tcb += rm.code_block_count; tb += rm.badge_count; }
+            if rm.content.is_some() { rwr += 1; if let Some(ref c) = rm.content { tc += c.len() as i64; } ts += rm.detected_sections.len() as i64; tcb += rm.code_block_count; tb += rm.badge_count; total_lists += rm.list_count; if rm.has_emoji { repos_with_emoji += 1; } }
         }
     }
     if rwr == 0 { return SignalScore::new("readme_quality", 0.0, 0.5, v(&[("message", j("No READMEs"))])); }
     let score = ((rwr as f64 / repos.len() as f64) * 30.0
-        + (ts as f64 / rwr as f64 * 5.0 + tcb as f64 / rwr as f64 * 3.0).min(30.0)
+        + (ts as f64 / rwr as f64 * 5.0 + tcb as f64 / rwr as f64 * 3.0 + total_lists as f64 / rwr as f64 * 1.5).min(30.0)
         + (tc as f64 / rwr as f64 / 66.7).min(15.0) + (tb as f64 / rwr as f64 * 2.0).min(10.0)
-        + 0.0).min(100.0); // emoji skipped in SP1
+        + (repos_with_emoji as f64 / rwr as f64) * 15.0).min(100.0);
     SignalScore::new("readme_quality", score, (0.9_f64).min(rwr as f64 / 20.0),
-        v(&[("repos_with_readme", j(rwr)), ("mode", j("readme_content"))]))
+        v(&[("repos_with_readme", j(rwr)), ("avg_char_count", j((tc as f64 / rwr as f64 * 10.0).round() / 10.0)), ("avg_sections", j((ts as f64 / rwr as f64 * 10.0).round() / 10.0)), ("avg_code_blocks", j((tcb as f64 / rwr as f64 * 10.0).round() / 10.0)), ("avg_lists", j((total_lists as f64 / rwr as f64 * 10.0).round() / 10.0)), ("avg_badges", j((tb as f64 / rwr as f64 * 10.0).round() / 10.0)), ("emoji_ratio", j((repos_with_emoji as f64 / rwr as f64 * 100.0).round() / 100.0)), ("mode", j("readme_content"))]))
 }
 
 fn commit_semantics(commits: &[scoring_types::CommitData]) -> SignalScore {
