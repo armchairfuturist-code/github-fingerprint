@@ -4,5 +4,6 @@ members = [
     "scoring-core",
     "scoring-cli",
     "scoring-sp1-core",
+    "scoring-cross-compare",
 ]
 resolver = "2"
