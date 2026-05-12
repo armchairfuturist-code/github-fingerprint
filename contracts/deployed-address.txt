@@ -1,0 +1,14 @@
+# SP1Verifier deployment address for Base Sepolia
+# Status: NOT YET DEPLOYED
+# 
+# To deploy:
+#   1. Fund 0x7d373839eb87DEED431832CFeF8A76c10ed2E87A with ~0.01 Base Sepolia ETH
+#   2. Run: PRIVATE_KEY=0xb4d726f3246ee63009ed343ed55c2c4ac0939ff8a4ccefa9487ace890ecf8132 node contracts/deploy.cjs
+#   3. This file will be updated with the contract address.
+#
+# Base Sepolia ETH faucets:
+#   - https://www.alchemy.com/faucets/base-sepolia
+#   - https://base-sepolia-faucet.vercel.app/
+#   - https://www.coinbase.com/faucets/base-sepolia-faucet
+#
+not-yet-deployed
