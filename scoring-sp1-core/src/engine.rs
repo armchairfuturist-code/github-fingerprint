@@ -93,42 +93,52 @@ fn commit_consistency(commits: &[scoring_types::CommitData]) -> SignalScore {
             if d > 0.0 { diffs.push(d); }
         }
     }
-    if diffs.is_empty() { return SignalScore::new("commit_consistency", 50.0, 0.5, v(&[("message", j("Only one commit"))])); }
+    if diffs.is_empty() { return SignalScore::new("commit_consistency", 50.0, 0.5, v(&[("message", j("Only one commit found"))])); }
     let n = diffs.len() as f64;
     let avg: f64 = diffs.iter().sum::<f64>() / n;
     let var: f64 = diffs.iter().map(|d| (d - avg).powi(2)).sum::<f64>() / n;
     let std = var.sqrt();
     let score = if avg > 0.0 { (100.0 * (1.0 - std / avg)).clamp(0.0, 100.0) } else { 50.0 };
     SignalScore::new("commit_consistency", score, (0.9_f64).min(commits.len() as f64 / 100.0),
-        v(&[("total_commits", j(commits.len())), ("avg_time_between_commits_hours", j(avg / 3600.0))]))
+        v(&[("total_commits", j(commits.len())), ("avg_time_between_commits_hours", j(avg / 3600.0)),
+            ("std_dev_hours", j(std / 3600.0))]))
 }
 
 fn language_diversity(repos: &[scoring_types::RepoData]) -> SignalScore {
     if repos.is_empty() { return SignalScore::new("language_diversity", 0.0, 0.0, v(&[("message", j("No repos found"))])); }
     let mut lc: BTreeMap<String, i64> = BTreeMap::new();
     for r in repos { if let Some(ref l) = r.language { *lc.entry(l.clone()).or_insert(0) += 1; } }
-    if lc.is_empty() { return SignalScore::new("language_diversity", 0.0, 0.0, v(&[("message", j("No languages"))])); }
+    if lc.is_empty() { return SignalScore::new("language_diversity", 0.0, 0.0, v(&[("message", j("No languages detected"))])); }
     let t: f64 = lc.values().copied().sum::<i64>() as f64;
     let mut e = 0.0;
     for c in lc.values() { let p = *c as f64 / t; if p > 0.0 { e -= p * p.sqrt(); } }
     let me = (lc.len() as f64).sqrt();
-    let score = if me > 0.0 { (e / me * 100.0).max(0.0).min(100.0) } else { 0.0 };
+    let score = if me > 0.0 { (e / me * 100.0).min(100.0) } else { 0.0 };
+    let top5: BTreeMap<String, i64> = {
+        let mut v: Vec<_> = lc.into_iter().collect();
+        v.sort_by(|a, b| b.1.cmp(&a.1));
+        v.truncate(5);
+        v.into_iter().collect()
+    };
     SignalScore::new("language_diversity", score, (0.9_f64).min(repos.len() as f64 / 50.0),
-        v(&[("unique_languages", j(lc.len()))]))
+        v(&[("unique_languages", j(top5.len())), ("top_languages", j(top5))]))
 }
 
 fn issue_engagement(issues: &[scoring_types::IssueData]) -> SignalScore {
-    if issues.is_empty() { return SignalScore::new("issue_engagement", 0.0, 0.0, v(&[("message", j("No issues"))])); }
+    if issues.is_empty() { return SignalScore::new("issue_engagement", 0.0, 0.0, v(&[("message", j("No issues found"))])); }
     let tc: i64 = issues.iter().map(|i| i.comments).sum();
     let closed = issues.iter().filter(|i| i.state == "CLOSED").count();
     let n = issues.len() as f64;
-    let score = ((tc as f64 / n) * 20.0 + (closed as f64 / n) * 50.0).min(100.0);
+    let avg_comments = tc as f64 / n;
+    let close_rate = closed as f64 / n;
+    let score = (avg_comments * 20.0 + close_rate * 50.0).min(100.0);
     SignalScore::new("issue_engagement", score, (0.9_f64).min(issues.len() as f64 / 30.0),
-        v(&[("total_issues", j(issues.len())), ("total_comments", j(tc))]))
+        v(&[("total_issues", j(issues.len())), ("total_comments", j(tc)),
+            ("avg_comments_per_issue", j(avg_comments)), ("close_rate", j(close_rate))]))
 }
 
 fn pr_patterns(prs: &[scoring_types::PrData]) -> SignalScore {
-    if prs.is_empty() { return SignalScore::new("pr_patterns", 0.0, 0.0, v(&[("message", j("No PRs"))])); }
+    if prs.is_empty() { return SignalScore::new("pr_patterns", 0.0, 0.0, v(&[("message", j("No PRs found"))])); }
     let n = prs.len() as f64;
     let merged = prs.iter().filter(|p| p.merged_at.is_some()).count();
     let mr = merged as f64 / n;
@@ -138,11 +148,13 @@ fn pr_patterns(prs: &[scoring_types::PrData]) -> SignalScore {
     let bal = if aa + ad > 0.0 { aa.min(ad) / (aa + ad) } else { 0.0 };
     let score = (mr * 40.0 + bal * 30.0 + (1.0_f64).min(100.0 / (af + 1.0)) * 30.0).min(100.0);
     SignalScore::new("pr_patterns", score, (0.9_f64).min(prs.len() as f64 / 30.0),
-        v(&[("total_prs", j(prs.len())), ("merged_prs", j(merged))]))
+        v(&[("total_prs", j(prs.len())), ("merged_prs", j(merged)),
+            ("avg_additions", j(aa)), ("avg_deletions", j(ad)),
+            ("avg_files_changed", j(af))]))
 }
 
 fn project_ownership(repos: &[scoring_types::RepoData], _prs: &[scoring_types::PrData]) -> SignalScore {
-    if repos.is_empty() { return SignalScore::new("project_ownership", 0.0, 0.0, v(&[("message", j("No repos"))])); }
+    if repos.is_empty() { return SignalScore::new("project_ownership", 0.0, 0.0, v(&[("message", j("No repos found"))])); }
     let owned = repos.iter().filter(|r| !r.is_fork).count();
     let forked = repos.iter().filter(|r| r.is_fork).count();
     let t = repos.len();
@@ -153,16 +165,17 @@ fn project_ownership(repos: &[scoring_types::RepoData], _prs: &[scoring_types::P
 }
 
 fn review_patterns(prs: &[scoring_types::PrData]) -> SignalScore {
-    if prs.is_empty() { return SignalScore::new("review_patterns", 0.0, 0.0, v(&[("message", j("No PRs"))])); }
+    if prs.is_empty() { return SignalScore::new("review_patterns", 0.0, 0.0, v(&[("message", j("No PRs found"))])); }
     let tc: i64 = prs.iter().map(|p| p.comments + p.review_comments).sum();
     let avg = tc as f64 / prs.len() as f64;
     SignalScore::new("review_patterns", (avg * 20.0).min(100.0), (0.9_f64).min(prs.len() as f64 / 20.0),
-        v(&[("total_review_comments", j(tc))]))
+        v(&[("total_prs", j(prs.len())), ("total_review_comments", j(tc)),
+            ("avg_comments_per_pr", j(avg))]))
 }
 
 fn response_time(prs: &[scoring_types::PrData], issues: &[scoring_types::IssueData]) -> SignalScore {
     if prs.is_empty() && issues.is_empty() {
-        return SignalScore::new("response_time", 0.0, 0.0, v(&[("message", j("No data"))]));
+        return SignalScore::new("response_time", 0.0, 0.0, v(&[("message", j("No PRs or issues found"))]));
     }
     let mut times: Vec<f64> = Vec::new();
     for pr in prs {
@@ -179,7 +192,7 @@ fn response_time(prs: &[scoring_types::PrData], issues: &[scoring_types::IssueDa
             }
         }
     }
-    if times.is_empty() { return SignalScore::new("response_time", 50.0, 0.5, v(&[("message", j("No completed items"))])); }
+    if times.is_empty() { return SignalScore::new("response_time", 50.0, 0.5, v(&[("message", j("No completed PRs or issues"))])); }
     let avg: f64 = times.iter().sum::<f64>() / times.len() as f64;
     let score = (100.0 - (avg.min(86400.0 * 7.0) / 86400.0) * 10.0).max(0.0);
     SignalScore::new("response_time", score, (0.9_f64).min(times.len() as f64 / 20.0),
@@ -187,15 +200,15 @@ fn response_time(prs: &[scoring_types::PrData], issues: &[scoring_types::IssueDa
 }
 
 fn readme_quality(repos: &[scoring_types::RepoData], readmes: &BTreeMap<String, scoring_types::ReadmeData>) -> SignalScore {
-    if repos.is_empty() { return SignalScore::new("readme_quality", 0.0, 0.0, v(&[("message", j("No repos"))])); }
+    if repos.is_empty() { return SignalScore::new("readme_quality", 0.0, 0.0, v(&[("message", j("No repos found"))])); }
     if readmes.is_empty() {
         let wd = repos.iter().filter(|r| r.description.is_some()).count();
-        if wd == 0 { return SignalScore::new("readme_quality", 0.0, 0.5, v(&[("message", j("No descriptions"))])); }
+        if wd == 0 { return SignalScore::new("readme_quality", 0.0, 0.5, v(&[("message", j("No repos with descriptions"))])); }
         let tl: usize = repos.iter().filter_map(|r| r.description.as_ref()).map(|d| d.len()).sum();
         let al = tl as f64 / wd as f64;
         let score = ((wd as f64 / repos.len() as f64) * 50.0 + (al / 10.0).min(50.0)).min(100.0);
         return SignalScore::new("readme_quality", score, (0.7_f64).min(repos.len() as f64 / 30.0),
-            v(&[("repos_with_description", j(wd)), ("mode", j("description_fallback"))]));
+            v(&[("repos_with_description", j(wd)), ("avg_description_length", j(al)), ("mode", j("description_fallback"))]));
     }
     let mut rwr = 0i64; let mut tc = 0i64; let mut ts = 0i64; let mut tcb = 0i64; let mut tb = 0i64; let mut repos_with_emoji = 0i64; let mut total_lists = 0i64;
     for repo in repos {
@@ -203,7 +216,7 @@ fn readme_quality(repos: &[scoring_types::RepoData], readmes: &BTreeMap<String, 
             if rm.content.is_some() { rwr += 1; if let Some(ref c) = rm.content { tc += c.len() as i64; } ts += rm.detected_sections.len() as i64; tcb += rm.code_block_count; tb += rm.badge_count; total_lists += rm.list_count; if rm.has_emoji { repos_with_emoji += 1; } }
         }
     }
-    if rwr == 0 { return SignalScore::new("readme_quality", 0.0, 0.5, v(&[("message", j("No READMEs"))])); }
+    if rwr == 0 { return SignalScore::new("readme_quality", 0.0, 0.5, v(&[("message", j("No repos with README content"))])); }
     let score = ((rwr as f64 / repos.len() as f64) * 30.0
         + (ts as f64 / rwr as f64 * 5.0 + tcb as f64 / rwr as f64 * 3.0 + total_lists as f64 / rwr as f64 * 1.5).min(30.0)
         + (tc as f64 / rwr as f64 / 66.7).min(15.0) + (tb as f64 / rwr as f64 * 2.0).min(10.0)
@@ -213,7 +226,7 @@ fn readme_quality(repos: &[scoring_types::RepoData], readmes: &BTreeMap<String, 
 }
 
 fn commit_semantics(commits: &[scoring_types::CommitData]) -> SignalScore {
-    if commits.is_empty() { return SignalScore::new("commit_semantics", 0.0, 0.0, v(&[("message", j("No commits"))])); }
+    if commits.is_empty() { return SignalScore::new("commit_semantics", 0.0, 0.0, v(&[("message", j("No commits found"))])); }
     let n = commits.len() as f64;
     let cc = ["feat","fix","docs","style","refactor","perf","test","build","ci","chore","revert"];
     let iv = ["add","remove","fix","update","change","implement","refactor","rename","move","delete","create","merge","bump","upgrade","downgrade","revert","introduce","extract","replace","migrate","enable","disable","improve","simplify","clean","bootstrap","initialize","convert","handle","support"];
@@ -240,14 +253,14 @@ fn commit_semantics(commits: &[scoring_types::CommitData]) -> SignalScore {
 }
 
 fn cicd_maturity(cicd: &BTreeMap<String, Vec<scoring_types::CicdConfigData>>, repos: &[scoring_types::RepoData]) -> SignalScore {
-    if cicd.is_empty() || repos.is_empty() { return SignalScore::new("cicd_maturity", 0.0, 0.0, v(&[("message", j("No data"))])); }
+    if cicd.is_empty() || repos.is_empty() { return SignalScore::new("cicd_maturity", 0.0, 0.0, v(&[("message", j("No CI/CD data available"))])); }
     let tr = repos.len();
     let mut rc = 0; let mut at: BTreeMap<String, i64> = BTreeMap::new();
     for (_, cfgs) in cicd {
         let has = cfgs.iter().any(|c| c.exists);
         if has { rc += 1; for c in cfgs { if c.exists { *at.entry(c.config_type.clone()).or_insert(0) += 1; } } }
     }
-    if rc == 0 { return SignalScore::new("cicd_maturity", 0.0, 0.5, v(&[("message", j("No CI/CD"))])); }
+    if rc == 0 { return SignalScore::new("cicd_maturity", 0.0, 0.5, v(&[("message", j("No CI/CD detected in any repo"))])); }
     let p = (rc as f64 / tr as f64) * 30.0;
     let d = (at.len() as f64 * 7.5).min(30.0);
     let ga = at.get("github_actions").copied().unwrap_or(0);
@@ -255,14 +268,16 @@ fn cicd_maturity(cicd: &BTreeMap<String, Vec<scoring_types::CicdConfigData>>, re
     let oth = at.keys().filter(|k| *k != "github_actions" && *k != "docker").count();
     let mut dp = 0.0; if ga > 0 { dp += 20.0; } if dk > 0 { dp += 10.0; } dp += oth as f64 * 15.0;
     let score = (p + d + dp.min(40.0)).min(100.0);
+    let ci_types: Vec<String> = at.keys().cloned().collect();
     SignalScore::new("cicd_maturity", score, (0.85_f64).min(0.3 + rc as f64 / tr as f64 * 0.5),
-        v(&[("repos_with_ci", j(rc)), ("ci_type_count", j(at.len()))]))
+        v(&[("repos_with_ci", j(rc)), ("total_repos", j(tr)), ("ci_type_count", j(at.len())),
+            ("ci_types_found", j(ci_types))]))
 }
 
 fn contribution_consistency(contributions: &Option<scoring_types::ContributionData>, commits: &[scoring_types::CommitData]) -> SignalScore {
     if let Some(ref c) = contributions {
         let days = &c.contribution_days;
-        if days.is_empty() { return SignalScore::new("contribution_consistency", 0.0, 0.5, v(&[("message", j("Empty calendar"))])); }
+        if days.is_empty() { return SignalScore::new("contribution_consistency", 0.0, 0.5, v(&[("message", j("Empty contribution calendar"))])); }
         let td = days.len() as f64;
         let ad = days.iter().filter(|d| d.contribution_count > 0).count() as f64;
         let ar = ad / td;
@@ -274,8 +289,8 @@ fn contribution_consistency(contributions: &Option<scoring_types::ContributionDa
         return SignalScore::new("contribution_consistency", score, (0.9_f64).min(0.4 + ar * 0.5),
             v(&[("total_days", j(days.len())), ("activity_ratio", j((ar*1000.0).round()/1000.0))]));
     }
-    if commits.is_empty() { return SignalScore::new("contribution_consistency", 0.0, 0.0, v(&[("message", j("No data"))])); }
-    if commits.len() < 2 { return SignalScore::new("contribution_consistency", 25.0, 0.3, v(&[("message", j("Too few commits"))])); }
+    if commits.is_empty() { return SignalScore::new("contribution_consistency", 0.0, 0.0, v(&[("message", j("No contribution data available"))])); }
+    if commits.len() < 2 { return SignalScore::new("contribution_consistency", 25.0, 0.3, v(&[("message", j("Too few commits")), ("mode", j("commit_fallback"))])); }
     let mut s: Vec<_> = commits.iter().collect(); s.sort_by_key(|c| &c.date);
     let first = s[0].date.clone(); let last = s[s.len()-1].date.clone();
     if let (Some(t1), Some(t2)) = (date_parser::parse_timestamp(&first), date_parser::parse_timestamp(&last)) {
@@ -296,7 +311,7 @@ fn contribution_consistency(contributions: &Option<scoring_types::ContributionDa
 }
 
 fn ai_usage_patterns(commits: &[scoring_types::CommitData]) -> SignalScore {
-    if commits.is_empty() { return SignalScore::new("ai_usage_patterns", 50.0, 0.0, v(&[("message", j("No commits"))])); }
+    if commits.is_empty() { return SignalScore::new("ai_usage_patterns", 50.0, 0.0, v(&[("message", j("No commits to analyze"))])); }
     let n = commits.len() as f64;
     let lens: Vec<f64> = commits.iter().map(|c| c.message.len() as f64).collect();
     let avg_len: f64 = lens.iter().sum::<f64>() / n;
