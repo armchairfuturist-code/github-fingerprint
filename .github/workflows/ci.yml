@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  SP1_VERSION: "v6.0.0"
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Stage 1 — Core Rust Build & Test
+  # ---------------------------------------------------------------------------
+  rust:
+    name: Rust Build & Test
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: 1.91.0
+          cache: true
+
+      - name: Install SP1 toolchain
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        shell: bash
+        run: |
+          curl -L https://sp1up.succinct.xyz | bash
+          export PATH="$HOME/.sp1/bin:$PATH"
+          sp1up
+          echo "$HOME/.sp1/bin" >> "$GITHUB_PATH"
+
+      - name: Cache SP1 circuits
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo
+            ~/.sp1/circuits
+          key: sp1-${{ env.SP1_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            sp1-${{ env.SP1_VERSION }}-
+            sp1-
+
+      - name: cargo prove build (SP1 guest program)
+        shell: bash
+        run: |
+          export PATH="$HOME/.sp1/bin:$PATH"
+          cd scoring-sp1/program
+          cargo prove build
+
+      - name: cargo build (full workspace)
+        run: cargo build --workspace
+
+      - name: cargo test (full workspace)
+        run: cargo test --workspace
+
+  # ---------------------------------------------------------------------------
+  # Stage 2 — Python Tests
+  # ---------------------------------------------------------------------------
+  python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Python tests
+        run: python -m pytest tests/ -x --tb=short
+
+  # ---------------------------------------------------------------------------
+  # Stage 3 — Contract Tests
+  # ---------------------------------------------------------------------------
+  contracts:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install Node.js dependencies
+        working-directory: contracts
+        run: npm ci
+
+      - name: Run contract tests
+        run: node tests/test_verifier_contract.cjs
