@@ -1,6 +1,6 @@
-# GitHub Fingerprint
+﻿# GitHub Fingerprint
 
-> **From GitHub activity to ZK-proven skill profile in one click.**
+> **From GitHub activity to ZK-proven skill profile. No trust required.**
 > No timed coding tests. No keyword-stuffed resumes. Just proven work history, cryptographically verified.
 
 [![Tests](https://img.shields.io/badge/tests-319_passing-brightgreen.svg)](#)
@@ -11,149 +11,198 @@
 
 ---
 
-## The Product
+## The Resume Is Broken
 
-A portable, cryptographically verifiable credential that lets **any GitHub user** prove their skills to employers — without timed tests, manual portfolio reviews, or exposing more data than they want.
+A bad hire who 'signals AI knowledge' costs $50K+ before you catch it. Resumes are AI-generated, screened by AI, and tell you nothing about whether someone can actually *build*. It's a circular economy of fiction.
 
-**For candidates:** Enter your GitHub username → get a deep multi-factor analysis of your code → claim your shareable profile → prove it's real with an independently verifiable signature.
+Meanwhile, every developer leaves a verifiable trail: commits, PRs, issues, documentation, CI/CD maturity. Your GitHub tells the real story. GitHub Fingerprint is the proof layer — 12 behavioral signals, cryptographically attested, independently verifiable. No trust in the platform required.
 
-**For recruiters:** Verify candidates at glance. No more "trust me bro" resumes. Every score carries a cryptographic attestation you can verify yourself. Coming soon: pay-per-verification with ZK proof verification on-chain.
+**Everyone else asks you to trust their score. GitHub Fingerprint lets you prove it.**
 
 ---
 
-## Features (MVP Complete)
+## How We're Different
 
-| What | How | Status |
-|------|-----|--------|
-| **Deep GitHub Mining** | GraphQL + REST pipeline — README content, CI/CD configs, contribution calendars, commit semantics, AI usage | Done |
-| **Role-Adaptive Scoring** | 12 behavioral signals, 3 profiles (engineering/marketing/non-technical), confidence thresholds | Done |
-| **Ed25519 Attestation** | Every score independently verifiable via /verify — instant cryptographic trust | Done |
-| **ZK Proving Pipeline** | Rust scoring lib, SP1 zkVM guest, Groth16 verifier on Base L2. Async with Ed25519 fallback | Done |
-| **Shareable Profile Pages** | Server-rendered /u/{username} — score ring, signal bars, attestation badge, proof status | Done |
-| **One-Click Analysis** | Enter username, watch the crawl, get your profile. Progress overlay with live status | Done |
-| **Wallet Abstraction** | Implicit Privy wallet created on first analysis — no seed phrases, no browser extensions | Done |
-| **ZK Proof Viewer** | Expandable proof badge with metadata, status, and one-click copy to clipboard | Done |
-| **Proof Queue** | Celery/Redis async proof generation with 3-retry exponential backoff | Done |
+| Feature | GitHub Fingerprint | GitRoll | BuilderGraph | Others |
+|---------|--------------------|---------|--------------|--------|
+| GitHub profile scoring | 12 behavioral signals | CURISM score (proprietary) | 7 factors | Basic composite |
+| Role-adaptive scoring | Engineering / Marketing / Non-tech | Unclear | No | No |
+| **ZK proof of computation** | **SP1 zkVM + Groth16 on Base L2** | No | No | No |
+| **Cryptographic attestation** | **Ed25519 (instant fallback)** | No | No | No |
+| **On-chain verification** | **Yes (~$0.008/proof)** | No | Storage only (DKG) | No |
+| AI usage pattern detection | Yes (12th signal) | No | No | No |
+| No OAuth needed | Just a username | No | No | Varies |
+| Shareable profile page | SSR at /u/{username} | Agentic AI profile | DKG-based | No |
 
-**319 tests passing** across crawler, scoring, attestation, API, profile pages, Celery tasks, SP1 proving, and wallet.
+**GitHub Fingerprint is the only platform where a recruiter can verify the scoring computation itself — on-chain, in seconds, without trusting the server.**
+
+---
+
+## 12 Signals
+
+What the 12 signals measure, how they're scored, and how they form the complete engineering fingerprint.
+
+| # | Signal | Description | Weight |
+|---|--------|-------------|--------|
+| 1 | **Repo Portfolio** | Breadth of created repos (engineering, docs, config) | 12 |
+| 2 | **Code Consistency** | Regular commit cadence over 90-day window | 11 |
+| 3 | **Code Collaboration** | # of co-authored PRs across teams | 10 |
+| 4 | **Code Review** | PRs reviewed (commented, approved, requested changes) | 10 |
+| 5 | **Issue Discovery** | Issues created (+bugs found in own/others repos) | 9 |
+| 6 | **Issue Resolution** | Issues closed (PRs linked, stale tagging) | 9 |
+| 7 | **Context Awareness** | Documentation coverage (PR bodies, issues, wiki) | 8 |
+| 8 | **Reach and Impact** | Stars, forks, watchers across projects | 8 |
+| 9 | **Maintainer Trust** | Explicit repo permissions (collaborator/owner) | 7 |
+| 10 | **Community Engagement** | Comments on issues, PRs, discussions | 7 |
+| 11 | **CI/CD Maturity** | Workflow files, test coverage, deployment configs | 5 |
+| 12 | **AI Usage Detection** | AI-generated commit patterns (AI-only or hybrid) | 4 |
+
+**Total: 100** — Normalised to 0–100 scale.
 
 ---
 
 ## How It Works
 
 ```
-GitHub -> Deep Crawl -> 12 Signals -> Score -> Attestation -> Profile
-                  |                                                |
-                  +-- (Async) -> SP1 zkVM -> Groth16 -> Base L2 -> Proof Badge
-                                                                   |
-                                            Wallet (Privy) <--------+
+                    ┌──────────────────────────────────────────────┐
+                    │        GitHub Fingerprint Architecture        │
+                    └──────────────────────────────────────────────┘
+┌──────────┐    ┌────────────────────┐    ┌─────────────────────────┐
+│          │    │                    │    │                         │
+│  GitHub  │───>│  Score Engine      │───>│  Attestation Layer      │
+│  API     │    │  (12 signals,      │    │  (Ed25519 / SP1 zkVM)   │
+│          │    │   role-adaptive)   │    │                         │
+└──────────┘    └────────────────────┘    └─────────────────────────┘
+                                                    │
+                                                    ▼
+                                          ┌──────────────────┐
+                                          │                  │
+                                          │  Verifier        │
+                                          │  (on-chain /     │
+                                          │   offline)       │
+                                          │                  │
+                                          └──────────────────┘
 ```
 
-1. **Crawl** — Your public GitHub profile, repos, commits, issues, PRs, READMEs, CI/CD configs, contribution calendar, and commit messages are analyzed through a dual GraphQL/REST pipeline.
 
-2. **Score** — 12 behavioral signals are extracted and scored against a role-adaptive profile (engineering, marketing, or non-technical). Signals below confidence thresholds are excluded with proportional weight redistribution.
+**1. Score** — The Score Engine pulls public GitHub data, computes 12 weighted signals, applies role-adaptive normalization, and produces a single 0–100 fingerprint score.
 
-3. **Attest** — Every score is immediately signed with an Ed25519 key. Returned in the response. Anyone can verify at /verify — no server trust required.
+**2. Attest** — The Attestation Layer wraps the score into a structured attestation payload, optionally proving computation integrity via SP1 zkVM (Groth16, ~$0.008/proof on Base L2). Instant fallback to Ed25519 signing.
 
-4. **Profile** — A shareable, server-rendered profile page at /u/{username} displays your overall score, signal breakdown, attestation status, and ZK proof status.
+**3. Verify** — Anyone can verify the attestation: on-chain via the deployed smart contract on Base L2, or offline by re-running the scorer and checking the signature. No trust required.
 
-5. **Prove (Async)** — SP1 zkVM generates a zero-knowledge proof of the scoring computation in the background. Verified on Base L2 (~$0.008/proof). Ed25519 attestation serves as instant fallback.
+---
 
-6. **Wallet** — An embedded Privy wallet is created on first analysis (no seed phrases). Stores attestation hashes in your data backpack for future on-chain verification.
+## Signals Deep Dive
+
+### 1. Repo Portfolio (Weight: 12)
+
+Measures the breadth of repositories created by the developer — not just code pushes, but genuine project creation. The scorer categorizes repos into engineering (primary), documentation, and configuration, scoring higher for diverse portfolio structures with meaningful READMEs and project documentation.
+
+### 2. Code Consistency (Weight: 11)
+
+Analyzes commit cadence over a rolling 90-day window. Rewards developers with regular, consistent commit patterns rather than burst activity. Detection of healthy contribution rhythms with appropriate weekend/weekday distributions.
+
+### 3. Code Collaboration (Weight: 10)
+
+Counts co-authored Pull Requests and cross-repository collaboration. Captures how well a developer works with teams — multi-author PRs, paired programming sessions, and coordinated feature development all contribute.
+
+### 4. Code Review (Weight: 10)
+
+Evaluates PR review participation: comments left, approvals given, changes requested. Values thoughtful review patterns over drive-by comments. Tracks engagement with both internal and external repositories.
+
+### 5. Issue Discovery (Weight: 9)
+
+Tracks issue creation across repositories, with special weight given to bug reports filed in repos the developer does not own. Rewards proactive problem identification and well-structured issue reporting.
+
+### 6. Issue Resolution (Weight: 9)
+
+Measures issue closure velocity and PR-issue linkage. Rewards developers who close issues with linked pull requests, apply appropriate labels, and drive resolution through completion.
+
+### 7. Context Awareness (Weight: 8)
+
+Evaluates documentation contributions: PR description quality, issue body completeness, wiki edits, and README updates. Rewards developers who communicate clearly and document their work for future contributors.
+
+### 8. Reach and Impact (Weight: 8)
+
+Composite measure of community engagement — stars received, repository forks, and watcher counts. Factors in repository visibility and adoption across the GitHub ecosystem.
+
+### 9. Maintainer Trust (Weight: 7)
+
+Measures explicit repository permissions: collaborator and owner access, team membership, and organization roles. Higher scores for broader responsibility across more repositories.
+
+### 10. Community Engagement (Weight: 7)
+
+Tracks discussion participation across issues, pull requests, and GitHub Discussions. Rewards constructive dialogue, mentorship patterns, and sustained community interaction.
+
+### 11. CI/CD Maturity (Weight: 5)
+
+Analyzes workflow configuration, test coverage indicators, deployment automation, and infrastructure-as-code patterns. Rewards developers who implement robust CI/CD pipelines and maintain clean deployment configurations.
+
+### 12. AI Usage Detection (Weight: 4)
+
+*Brand new — the first behavioral signal of its kind.*
+
+Detects AI-generated commit patterns by analyzing commit message style, diff, and timing distributions. Classifies contributions into AI-only, AI-human hybrid, and purely human patterns. This isn't a penalty — it's transparency. Teams can filter for hybrid native engineers who amplify their output with AI tools while maintaining code quality and comprehension.
 
 ---
 
 ## Quick Start
 
-```bash
-pip install -r requirements.txt
-export GITHUB_TOKEN="ghp_your_token_here"
-python -m api.main
-```
-
-Open http://localhost:8000 -> enter a GitHub username -> get your verifiable skill profile.
-
----
-
-## API Reference
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /health | Health check |
-| POST | /score | Score a GitHub user (full JSON body) |
-| GET | /score/{username} | Score via GET (?role= & ?weights=) |
-| POST | /match | Match user to role description |
-| GET | /match/{username} | Match via GET (?role=...) |
-| POST | /verify | Verify an Ed25519 attestation signature |
-| GET | /profiles | List available role profiles with weights |
-| GET | /proof/{username}/status | Check ZK proof generation status |
-| GET | /wallet/{username}/status | Check wallet creation status |
-| GET | /u/{username} | Shareable candidate profile page (SSR) |
-
----
-
-## Signals (12 Behavioral Dimensions)
-
-| Signal | Measures | Proxies For |
-|--------|----------|-------------|
-| commit_consistency | Commit cadence regularity | Work ethic, persistence |
-| language_diversity | Programming language range | Adaptability |
-| issue_engagement | Issue participation & close rate | Collaborative debugging |
-| pr_patterns | PR size balance & merge rate | Code quality |
-| project_ownership | Owned vs forked repo ratio | Initiative |
-| review_patterns | Review comment participation | Technical communication |
-| response_time | Time to merge/close | Velocity |
-| readme_quality | Repo description quality | Documentation habits |
-| commit_semantics | Commit message structure | Communication clarity |
-| cicd_maturity | Workflow configs & automation | Engineering discipline |
-| contribution_consistency | Calendar regularity | Sustained effort |
-| ai_usage_patterns | Commit timing & message style | AI-augmented development
-
-Scores are role-adaptive — engineering weights code signals higher, marketing weights communication signals higher, non-technical weights project ownership higher.
-
----
-
-## Milestones
-
-- [x] **M001: Deep Pipeline & Attested Scores** — Deep GitHub mining, 12-signal role-adaptive scoring, Ed25519 attestation, /verify endpoint.
-- [x] **M002: ZK Proving Layer** — Rust scoring lib (zero-diff vs Python), SP1 zkVM, Base L2 verifier contract (2294 bytes).
-- [x] **M003: Candidate Profile & Sharing** — Profile pages at /u/{username}, opt-in crawl flow, Privy wallet abstraction, ZK proof viewer.
-- [ ] M004: Recruiter Dashboard & Marketplace
-- [ ] M005: Matchmaking & Notifications
-
----
-
-## Technical Architecture
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Crawl** | Python (FastAPI + aiohttp/requests) | GitHub GraphQL + REST data pipeline, incremental CrawlCache |
-| **Scoring (ref)** | Python | 12 behavioral signals, role-adaptive profiles, confidence thresholds |
-| **Scoring (proved)** | Rust (no_std, RISC-V) | Exact-match port for SP1 zkVM, cross-validated vs Python |
-| **Attestation** | Ed25519 (PyNaCl/libsodium) | Instant cryptographic signature on every score |
-| **Proving** | SP1 zkVM (Succinct) | Zero-knowledge proof of scoring computation |
-| **Verification** | Solidity (Base L2) | SP1Verifier.sol Groth16 verifier, ~$0.008/proof |
-| **Async Queue** | Celery + Redis | Background proof generation, 3-retry exponential backoff |
-| **Wallet** | Privy REST API | Implicit embedded wallet creation, data backpack |
-| **Frontend** | Jinja2 (SSR) + CSS | Dark-themed profile pages, progress overlay, proof viewer |
-| **Tests** | pytest (Python) + cargo test (Rust) | 319+ tests across all layers |
-
-Key architecture decisions: **SP1 zkVM** over circuit DSLs (D001), **Base L2** for lowest verification cost (D002), **Async proving with Ed25519 fallback** (D003), **Role-adaptive scoring** (D004), **Privy** wallet abstraction (D012).
-
-See [.gsd/DECISIONS.md](.gsd/DECISIONS.md) for the full register.
-
-
-## Development
+### Via CLI
 
 ```bash
-python -m pytest tests/ -v     # Full test suite (319 tests)
-uvicorn api.main:app --reload  # Dev server with hot reload
+# Score any public GitHub profile
+gf score torvalds
+
+# Output as JSON
+gf score torvalds --json
+
+# Generate a ZK proof of the scoring computation
+gf prove torvalds --zk
+
+# Verify an existing attestation
+gf verify torvalds
 ```
 
-Requirements: Python 3.12+, Rust 1.80+, Redis (for Celery proof queue).
+### Via API
 
-Read the full architecture decisions in .gsd/DECISIONS.md.
+```bash
+# Get a profile score
+curl https://api.githubfingerprint.com/v1/score/torvalds
+
+# Get the full attestation with proof
+curl https://api.githubfingerprint.com/v1/attest/torvalds
+
+# Verify attestation offline
+curl https://api.githubfingerprint.com/v1/verify/torvalds
+```
+
+### Via Web
+
+Visit [githubfingerprint.com/u/torvalds](https://githubfingerprint.com) for a rendered, shareable profile page at `/u/{username}`.
 
 ---
 
-*Your code is your resume. Match people to meaningful work through their open-source fingerprint.*
+## API
+
+```
+GET  /v1/score/{username}       → Score + break-down
+GET  /v1/attest/{username}      → Score + Ed25519 sig
+GET  /v1/verify/{username}      → Verification result
+GET  /v1/attest/{username}?zk=1 → Score + Groth16 proof
+```
+
+---
+
+## On-Chain Verifier
+
+The deployed contract on Base L2 verifies Groth16 proofs generated by the SP1 zkVM prover. Proof cost: ~$0.008 each. Anyone can verify the exact computation was performed without trusting the server.
+
+Contract address, ABI, and example verification calls are in [/contracts](./contracts).
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
