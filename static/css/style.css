@@ -1,0 +1,774 @@
+/* GitHub Fingerprint — Profile Page Design System */
+
+:root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2128;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --green-dim: #238636;
+    --yellow: #d29922;
+    --yellow-dim: #9e6a03;
+    --red: #f85149;
+    --red-dim: #da3633;
+    --orange: #f0883e;
+    --card-radius: 8px;
+    --border-radius: 6px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+/* ── Profile Header ───────────────────────────────────────────────────── */
+
+.profile-header {
+    margin-bottom: 24px;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.logo {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+
+.logo:hover {
+    color: var(--accent);
+}
+
+.share-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.share-btn:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+}
+
+/* ── Profile Identity ─────────────────────────────────────────────────── */
+
+.profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.profile-username {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.profile-meta {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+.meta-sep {
+    margin: 0 6px;
+    color: var(--text-muted);
+}
+
+/* ── Overall Score ────────────────────────────────────────────────────── */
+
+.score-hero-section {
+    margin-bottom: 28px;
+}
+
+.overall-score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 28px 24px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.score-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+}
+
+.ring-svg {
+    width: 120px;
+    height: 120px;
+    transform: rotate(-90deg);
+}
+
+.ring-bg {
+    fill: none;
+    stroke: var(--border-subtle);
+    stroke-width: 8;
+}
+
+.ring-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s ease, stroke 0.3s ease;
+}
+
+.score-ring-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.score-hero-text {
+    flex: 1;
+}
+
+.score-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.score-profile-badge {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.score-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* ── Section Titles ───────────────────────────────────────────────────── */
+
+.section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Signal Breakdown ──────────────────────────────────────────────────── */
+
+.signals-section {
+    margin-bottom: 28px;
+}
+
+.signals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.signal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+}
+
+.signal-label {
+    width: 160px;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    text-align: right;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.signal-bar-wrap {
+    flex: 1;
+    height: 16px;
+    background: var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.signal-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    min-width: 2px;
+}
+
+.signal-bar.high { background: var(--green); }
+.signal-bar.medium { background: var(--yellow); }
+.signal-bar.low { background: var(--red); }
+
+.signal-value {
+    width: 28px;
+    flex-shrink: 0;
+    text-align: right;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.signal-value.high { color: var(--green); }
+.signal-value.medium { color: var(--yellow); }
+.signal-value.low { color: var(--red); }
+
+.signal-conf {
+    width: 34px;
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+/* ── Risk Flags ───────────────────────────────────────────────────────── */
+
+.risk-section {
+    margin-bottom: 28px;
+}
+
+.risk-title {
+    color: var(--yellow);
+}
+
+.risk-list {
+    list-style: none;
+}
+
+.risk-list li {
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: rgba(210, 153, 34, 0.08);
+    border-left: 3px solid var(--yellow);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--yellow);
+}
+
+.no-risks {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    padding: 4px 0;
+}
+
+/* ── Attestation ──────────────────────────────────────────────────────── */
+
+.attestation-section {
+    margin-bottom: 28px;
+}
+
+.attest-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px 20px;
+}
+
+.attest-card.verified {
+    border-color: var(--green-dim);
+}
+
+.attest-card.unverified {
+    opacity: 0.7;
+}
+
+.attest-status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.attest-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.verified-badge {
+    background: rgba(63, 185, 80, 0.15);
+    color: var(--green);
+}
+
+.unverified-badge {
+    background: rgba(139, 148, 158, 0.15);
+    color: var(--text-dim);
+}
+
+.attest-label-text {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+}
+
+.attest-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.attest-field {
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+}
+
+.attest-key {
+    color: var(--text-muted);
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.attest-val {
+    color: var(--text-dim);
+    word-break: break-all;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.72rem;
+}
+
+/* ── ZK Proof ─────────────────────────────────────────────────────────── */
+
+.wallet-section {
+    margin-bottom: 2rem;
+}
+
+.wallet-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+}
+
+.wallet-card.exists {
+    border-color: var(--accent);
+}
+
+.wallet-card.none {
+    border-color: var(--border);
+    opacity: 0.7;
+}
+
+.wallet-status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.wallet-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wallet-badge.exists-badge {
+    background: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+}
+
+.wallet-badge.none-badge {
+    background: rgba(139, 148, 158, 0.15);
+    color: #8b949e;
+}
+
+.wallet-label-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.wallet-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.wallet-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+}
+
+.wallet-key {
+    color: var(--text-secondary);
+    min-width: 100px;
+}
+
+.wallet-val {
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+.proof-section {
+    margin-bottom: 28px;
+}
+
+.proof-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.proof-card:hover {
+    background: var(--surface-hover);
+}
+
+.proof-card.status-unknown {
+    border-color: var(--border-subtle);
+}
+.proof-card.status-pending {
+    border-color: var(--yellow-dim);
+}
+.proof-card.status-proof_generating {
+    border-color: var(--accent-dim);
+}
+.proof-card.status-proof_generated {
+    border-color: var(--green-dim);
+}
+.proof-card.status-on_chain {
+    border-color: var(--green);
+}
+.proof-card.status-failed {
+    border-color: var(--red-dim);
+}
+
+.proof-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+}
+
+.proof-expand-toggle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.proof-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.proof-unknown {
+    background: rgba(139, 148, 158, 0.15);
+    color: var(--text-dim);
+}
+.proof-pending {
+    background: rgba(210, 153, 34, 0.15);
+    color: var(--yellow);
+}
+.proof-proof_generating {
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--accent);
+}
+.proof-proof_generated {
+    background: rgba(63, 185, 80, 0.15);
+    color: var(--green);
+}
+.proof-on_chain {
+    background: rgba(63, 185, 80, 0.25);
+    color: var(--green);
+}
+.proof-failed {
+    background: rgba(248, 81, 73, 0.15);
+    color: var(--red);
+}
+
+.proof-viewer-body {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.proof-viewer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.proof-viewer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 0.78rem;
+    padding: 4px 0;
+}
+
+.proof-viewer-label {
+    color: var(--text-muted);
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.proof-viewer-value {
+    color: var(--text);
+    text-align: right;
+    word-break: break-all;
+    max-width: 70%;
+}
+
+.proof-viewer-value.proof-mono {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+}
+
+.proof-viewer-value.proof-error-text {
+    color: var(--red);
+    font-style: italic;
+}
+
+.proof-status-text.proof-unknown { color: var(--text-dim); }
+.proof-status-text.proof-pending { color: var(--yellow); }
+.proof-status-text.proof-proof_generating { color: var(--accent); }
+.proof-status-text.proof-proof_generated { color: var(--green); }
+.proof-status-text.proof-on_chain { color: var(--green); }
+.proof-status-text.proof-failed { color: var(--red); }
+
+.proof-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(88, 166, 255, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: var(--border-radius);
+    color: var(--accent);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.proof-copy-btn:hover {
+    background: rgba(88, 166, 255, 0.2);
+    border-color: var(--accent);
+}
+
+.proof-copy-btn:active {
+    transform: scale(0.97);
+}
+/* ── Footer ────────────────────────────────────────────────────────────── */
+
+.profile-footer {
+    text-align: center;
+    padding: 24px 0 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+}
+
+.profile-footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.profile-footer a:hover {
+    color: var(--accent);
+}
+
+/* ── Toast Notification ────────────────────────────────────────────────── */
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-dim);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 10px 22px;
+    border-radius: var(--border-radius);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.toast.visible { opacity: 1; }
+
+/* ── Error Page ────────────────────────────────────────────────────────── */
+
+.error-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+}
+
+.error-container {
+    text-align: center;
+}
+
+.error-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 40px 36px;
+    max-width: 420px;
+}
+
+.error-code {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--red);
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.error-card h1 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.error-card p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.error-detail {
+    color: var(--text-muted) !important;
+    font-size: 0.8rem !important;
+    margin-top: 8px !important;
+}
+
+.error-actions {
+    margin-top: 24px;
+}
+
+.btn-link {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 24px;
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.btn-link:hover {
+    opacity: 0.85;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 520px) {
+    .container { padding: 16px 12px; }
+
+    .overall-score-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 16px;
+    }
+
+    .score-hero-text {
+        text-align: center;
+    }
+
+    .signal-label {
+        width: 100px;
+        font-size: 0.65rem;
+    }
+
+    .signal-value { width: 24px; }
+    .signal-conf { width: 28px; font-size: 0.62rem; }
+
+    .profile-username { font-size: 1.2rem; }
+
+    .score-ring { width: 100px; height: 100px; }
+    .ring-svg { width: 100px; height: 100px; }
+    .score-ring-value { font-size: 1.6rem; }
+}

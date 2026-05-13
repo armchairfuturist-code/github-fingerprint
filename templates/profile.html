@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ username }} — GitHub Fingerprint</title>
+    <meta name="description" content="Verifiable skill profile for {{ username }} — GitHub Fingerprint score, signals, and attestation.">
+    <meta property="og:title" content="{{ username }} — GitHub Fingerprint">
+    <meta property="og:description" content="Verifiable skill profile: {{ overall_score }}/100 score">
+    <meta property="og:type" content="profile">
+    <meta name="twitter:card" content="summary">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="profile-page">
+    <div class="container profile-container">
+        <!-- Header -->
+        <header class="profile-header">
+            <div class="header-top">
+                <a href="/" class="logo">GitHub Fingerprint</a>
+                <button class="share-btn" id="share-btn" onclick="copyProfileUrl()">Share Profile</button>
+            </div>
+            <div class="profile-identity">
+                <div class="avatar-placeholder">{{ username[:2].upper() }}</div>
+                <div>
+                    <h1 class="profile-username">{{ username }}</h1>
+                    <p class="profile-meta">
+                        <span>{{ gh_stats.public_repos }} repos</span>
+                        <span class="meta-sep">·</span>
+                        <span>{{ gh_stats.followers }} followers</span>
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Overall Score -->
+        <section class="score-hero-section">
+            <div class="overall-score-card">
+                <div class="score-ring">
+                    <svg viewBox="0 0 120 120" class="ring-svg">
+                        <circle cx="60" cy="60" r="52" class="ring-bg"/>
+                        <circle cx="60" cy="60" r="52" class="ring-fill"
+                                stroke-dasharray="326.73"
+                                stroke-dashoffset="{{ 326.73 - (326.73 * overall_score / 100) }}"
+                                style="stroke: {% if overall_score >= 70 %}#3fb950{% elif overall_score >= 40 %}#d29922{% else %}#f85149{% endif %};"/>
+                    </svg>
+                    <div class="score-ring-value">{{ overall_score|int }}</div>
+                </div>
+                <div class="score-hero-text">
+                    <div class="score-label">Overall Score</div>
+                    <div class="score-profile-badge">{{ profile_name }}</div>
+                    <div class="score-date">Scored {{ scored_at[:10] }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Signal Breakdown -->
+        <section class="signals-section">
+            <h2 class="section-title">Signal Breakdown</h2>
+            <div class="signals-list">
+                {% for name, sig in signal_scores.items() %}
+                {% set display_name = signal_display_names.get(name, name.replace('_', ' ').title()) %}
+                {% set score_int = sig.score|int %}
+                {% if score_int >= 70 %}
+                    {% set bar_class = "high" %}
+                {% elif score_int >= 40 %}
+                    {% set bar_class = "medium" %}
+                {% else %}
+                    {% set bar_class = "low" %}
+                {% endif %}
+                <div class="signal-row">
+                    <div class="signal-label" title="{{ name }}">{{ display_name }}</div>
+                    <div class="signal-bar-wrap">
+                        <div class="signal-bar {{ bar_class }}" style="width: {{ score_int }}%"></div>
+                    </div>
+                    <div class="signal-value {{ bar_class }}">{{ score_int }}</div>
+                    <div class="signal-conf">{{ (sig.confidence * 100)|int }}%</div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Risk Flags -->
+        <section class="risk-section">
+            <h2 class="section-title risk-title">Risk Flags</h2>
+            {% if risk_flags %}
+            <ul class="risk-list">
+                {% for flag in risk_flags %}
+                <li>{{ flag }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-risks">No risk flags detected</p>
+            {% endif %}
+        </section>
+
+        <!-- Attestation Badge -->
+        <section class="attestation-section">
+            <h2 class="section-title">Attestation</h2>
+            {% if attestation and attestation.signature %}
+            <div class="attest-card verified">
+                <div class="attest-status-row">
+                    <span class="attest-badge verified-badge">✓ Verified</span>
+                    <span class="attest-label-text">Ed25519 Signature</span>
+                </div>
+                <div class="attest-details">
+                    <div class="attest-field">
+                        <span class="attest-key">Signature</span>
+                        <span class="attest-val">{{ attestation.signature[:20] }}…{{ attestation.signature[-8:] }}</span>
+                    </div>
+                    <div class="attest-field">
+                        <span class="attest-key">Public Key</span>
+                        <span class="attest-val">{{ attestation.public_key[:16] }}…{{ attestation.public_key[-8:] }}</span>
+                    </div>
+                    <div class="attest-field">
+                        <span class="attest-key">Signed</span>
+                        <span class="attest-val">{{ attestation.signed_at[:19].replace('T', ' ') }} UTC</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="attest-card unverified">
+                <div class="attest-status-row">
+                    <span class="attest-badge unverified-badge">No Attestation</span>
+                    <span class="attest-label-text">Signing key unavailable</span>
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Wallet Status -->
+        <section class="wallet-section">
+            <h2 class="section-title">Wallet</h2>
+            {% if wallet and wallet.wallet_id %}
+            <div class="wallet-card exists">
+                <div class="wallet-status-row">
+                    <span class="wallet-badge exists-badge">✓ Wallet Created</span>
+                    <span class="wallet-label-text">Privy Embedded Wallet</span>
+                </div>
+                <div class="wallet-details">
+                    <div class="wallet-field">
+                        <span class="wallet-key">Address</span>
+                        <span class="wallet-val">{{ wallet.address[:10] }}…{{ wallet.address[-6:] if wallet.address and wallet.address|length > 16 else '' }}</span>
+                    </div>
+                    <div class="wallet-field">
+                        <span class="wallet-key">Chain</span>
+                        <span class="wallet-val">{{ wallet.chain_type|default('Ethereum', true) }}</span>
+                    </div>
+                    <div class="wallet-field">
+                        <span class="wallet-key">Created</span>
+                        <span class="wallet-val">{{ wallet.created_at[:19].replace('T', ' ') if wallet.created_at else 'N/A' }} UTC</span>
+                    </div>
+                    <div class="wallet-field">
+                        <span class="wallet-key">Data Backpack</span>
+                        <span class="wallet-val">{{ wallet.attestation_hashes|length if wallet.attestation_hashes else 0 }} attestations</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="wallet-card none">
+                <div class="wallet-status-row">
+                    <span class="wallet-badge none-badge">No Wallet</span>
+                    <span class="wallet-label-text">Wallet will be created on next score analysis</span>
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- ZK Proof Viewer -->
+        <section class="proof-section">
+            <h2 class="section-title">ZK Proof</h2>
+            {% set ps = proof_status %}
+            <div class="proof-card status-{{ ps.status }}" onclick="toggleProofViewer(event)">
+                <div class="proof-header-row">
+                    <span class="proof-badge proof-{{ ps.status }}">
+                        {% if ps.status == "unknown" %}>/dev/null 2>&1 &#9679; Not Started
+                        {% elif ps.status == "pending" %}>/dev/null 2>&1 &#9687; Pending
+                        {% elif ps.status == "proof_generating" %}>/dev/null 2>&1 &#9678; Generating>/dev/null 2>&1 &#8230;
+                        {% elif ps.status == "proof_generated" %}>/dev/null 2>&1 &#10003; Proof Ready
+                        {% elif ps.status == "on_chain" %}>/dev/null 2>&1 &#8852; On Chain
+                        {% elif ps.status == "failed" %}>/dev/null 2>&1 &#10005; Failed
+                        {% else %}{{ ps.status }}
+                        {% endif %}
+                    </span>
+                    <span class="proof-expand-toggle" id="proof-toggle">&#9654;</span>
+                </div>
+
+                <div class="proof-viewer-body" id="proof-viewer-body" style="display:none;">
+                    <div class="proof-viewer-grid">
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Status</span>
+                            <span class="proof-viewer-value proof-status-text proof-{{ ps.status }}">
+                                {% if ps.status == "unknown" %}Not Started
+                                {% elif ps.status == "pending" %}Pending
+                                {% elif ps.status == "proof_generating" %}Proof Generating
+                                {% elif ps.status == "proof_generated" %}Proof Ready
+                                {% elif ps.status == "on_chain" %}On Chain
+                                {% elif ps.status == "failed" %}Failed
+                                {% else %}{{ ps.status }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if ps.proof_id %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Proof ID</span>
+                            <span class="proof-viewer-value proof-mono">{{ ps.proof_id }}</span>
+                        </div>
+                        {% endif %}
+                        {% if ps.created_at %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Created</span>
+                            <span class="proof-viewer-value">{{ ps.created_at[:19].replace('T', ' ') }} UTC</span>
+                        </div>
+                        {% endif %}
+                        {% if ps.updated_at %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Updated</span>
+                            <span class="proof-viewer-value">{{ ps.updated_at[:19].replace('T', ' ') }} UTC</span>
+                        </div>
+                        {% endif %}
+                        {% if ps.tx_hash %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Tx Hash</span>
+                            <span class="proof-viewer-value proof-mono">{{ ps.tx_hash }}</span>
+                        </div>
+                        {% endif %}
+                        {% if ps.error %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Error</span>
+                            <span class="proof-viewer-value proof-error-text">{{ ps.error }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <button class="proof-copy-btn" onclick="copyProofData(event)" data-proof='{{ ps | tojson | safe }}'>
+                        >/dev/null 2>&1 &#128203; Copy Proof Data
+                    </button>
+                </div>
+            </div>
+        </section>        <!-- Footer -->
+        <footer class="profile-footer">
+            <a href="/">Powered by GitHub Fingerprint</a>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        
+        function toggleProofViewer(event) {
+            if (event.target.classList.contains('proof-copy-btn') || event.target.closest('.proof-copy-btn')) return;
+            var body = document.getElementById('proof-viewer-body');
+            var toggle = document.getElementById('proof-toggle');
+            if (!body || !toggle) return;
+            var isHidden = body.style.display === 'none';
+            body.style.display = isHidden ? 'block' : 'none';
+            toggle.textContent = isHidden ? '▼' : '▶';
+        }
+
+        function copyProofData(event) {
+            event.stopPropagation();
+            var btn = event.target.closest('.proof-copy-btn');
+            if (!btn) return;
+            var jsonStr = btn.getAttribute('data-proof');
+            if (!jsonStr) { showToast('No proof data available'); return; }
+            try {
+                var data = JSON.parse(jsonStr);
+                var text = JSON.stringify(data, null, 2);
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('Proof data copied to clipboard');
+                }).catch(function() {
+                    showToast('Failed to copy proof data');
+                });
+            } catch(e) {
+                showToast('Failed to parse proof data');
+            }
+        }
+
+
+function copyProfileUrl() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Profile URL copied to clipboard');
+            }).catch(() => {
+                showToast('Failed to copy URL');
+            });
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('visible'), 2000);
+        }
+    </script>
+</body>
+</html>

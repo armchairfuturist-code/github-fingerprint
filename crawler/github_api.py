@@ -581,9 +581,15 @@ class GitHubAPIClient:
                 location
                 createdAt
                 updatedAt
-                publicRepos
-                followers
-                following
+                repositories(privacy: PUBLIC) {
+                    totalCount
+                }
+                followers {
+                    totalCount
+                }
+                following {
+                    totalCount
+                }
             }
         }
         """
@@ -598,9 +604,9 @@ class GitHubAPIClient:
             location=user_data.get("location"),
             created_at=datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00")),
             updated_at=datetime.fromisoformat(user_data["updatedAt"].replace("Z", "+00:00")),
-            public_repos=user_data["publicRepos"],
-            followers=user_data["followers"],
-            following=user_data["following"],
+            public_repos=user_data["repositories"]["totalCount"],
+            followers=user_data["followers"]["totalCount"],
+            following=user_data["following"]["totalCount"],
         )
 
     def get_user_repos(self, username: str, limit: int = 100) -> List[GitHubRepo]:

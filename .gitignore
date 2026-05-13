@@ -29,3 +29,5 @@ vendor/
 coverage/
 .cache/
 tmp/
+wallet_store.json
+scripts/

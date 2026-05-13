@@ -241,9 +241,9 @@ class TestGitHubAPIClient:
                         "location": "Test City",
                         "createdAt": "2020-01-01T00:00:00Z",
                         "updatedAt": "2020-01-02T00:00:00Z",
-                        "publicRepos": 10,
-                        "followers": 100,
-                        "following": 50,
+                        "repositories": {"totalCount": 10},
+                        "followers": {"totalCount": 100},
+                        "following": {"totalCount": 50},
                     }
                 }
             },
@@ -960,7 +960,7 @@ class TestCrawlCache:
             {"data": {"user": {"name": "T", "bio": None, "company": None, "location": None,
                                "createdAt": "2024-01-01T00:00:00Z",
                                "updatedAt": "2024-01-02T00:00:00Z",
-                               "publicRepos": 1, "followers": 0, "following": 0}}},
+                               "repositories": {"totalCount": 1}, "followers": {"totalCount": 0}, "following": {"totalCount": 0}}}},
             {"X-RateLimit-Remaining": "4999", "X-RateLimit-Reset": "1234567890"})
 
         repos_resp = _mock_response(200,
@@ -1095,4 +1095,5 @@ class TestCrawlCache:
         updated_cache = cache.load("testuser")
         assert updated_cache is not None
         assert updated_cache["repos"]["user/stale-repo"]["pushed_at"] == new_ts.isoformat()
+
 

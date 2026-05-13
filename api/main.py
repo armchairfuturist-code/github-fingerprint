@@ -3,6 +3,8 @@ FastAPI REST endpoint for GitHub fingerprint scoring.
 """
 import logging
 from fastapi import FastAPI, HTTPException, Query
+from fastapi import Request as FastAPIRequest
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
@@ -14,6 +16,7 @@ try:
 except ImportError:
     from prover_client import run_proof, _generate_proof_id  # direct execution
 from attest import sign_score, load_or_generate_signing_key, verify_attestation
+import wallet
 from crawler.github_api import GitHubAPIClient
 from scoring.engine import ScoringEngine
 from scoring.profiles import list_profiles, resolve_role_profile, get_profile
@@ -133,6 +136,17 @@ class ProofStatusResponse(BaseModel):
     attestation: Optional[Dict[str, Any]] = None
 
 
+class WalletStatusResponse(BaseModel):
+    """Wallet status for a GitHub user."""
+    username: str
+    wallet_id: Optional[str] = None
+    address: Optional[str] = None
+    chain_type: Optional[str] = None
+    created_at: Optional[str] = None
+    attestation_hashes: List[str] = []
+    status: str = "not_found"
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
@@ -206,6 +220,9 @@ async def score_user(request: ScoreRequest):
             # Proof enqueue failure does NOT block the score response.
             # Ed25519 attestation is returned regardless.
 
+        # ── Wallet creation (non-blocking) ────────────────────────────────
+        _create_wallet_for_user(request.username, attestation_block)
+
         return ScoreResponse(
             username=request.username,
             overall_score=score_result.overall_score,
@@ -253,6 +270,8 @@ async def score_user_get(
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid weights JSON")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
@@ -299,6 +318,48 @@ def _build_attestation(
             "Failed to produce attestation for user=%s", username
         )
         return None
+
+
+def _create_wallet_for_user(
+    username: str,
+    attestation_block: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Create a Privy wallet for the user and store attestation hash.
+
+    This is intentionally non-blocking — wallet creation failures never
+    affect the score response. The function logs and swallows all errors.
+
+    If the user already has a wallet in the local store, creation is skipped
+    (idempotent). When an attestation block exists, its signature hash is
+    added to the user's data backpack.
+    """
+    store = wallet.get_store()
+
+    # Skip if wallet already exists
+    if store.get_by_username(username) is not None:
+        logger.debug("Wallet already exists for user=%s — skipping creation", username)
+    else:
+        # Attempt creation via Privy
+        wallet_data = wallet.create_wallet(username)
+        if wallet_data is not None:
+            wallet_data.setdefault("attestation_hashes", [])
+            store.set_wallet(username, wallet_data)
+            logger.info(
+                "wallet_stored: user=%s address=%s",
+                username,
+                wallet_data.get("address", "?")[:10],
+            )
+        else:
+            logger.info(
+                "wallet_creation_skipped: user=%s (Privy unavailable or error)",
+                username,
+            )
+
+    # Store attestation hash in data backpack
+    if attestation_block and attestation_block.get("signature"):
+        sig_hash = "sha256:" + attestation_block["signature"][:16]
+        store.add_attestation_hash(username, sig_hash)
+
 
 def _extract_role_keywords(role_description: str) -> Dict[str, int]:
     """Extract keywords from role description for simple matching.
@@ -532,6 +593,8 @@ async def match_user_get(
     try:
         request = MatchRequest(username=username, role_description=role)
         return await match_user(request)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
@@ -636,6 +699,174 @@ async def proof_status(username: str):
         error=record.get("error"),
         attestation=attestation_block,
     )
+
+
+@app.get("/wallet/{username}/status", response_model=WalletStatusResponse)
+async def wallet_status(username: str):
+    """Get the wallet status for a user.
+
+    Returns wallet details if a wallet has been created for this user,
+    or a not_found status if no wallet exists yet.
+
+    Args:
+        username: GitHub username
+
+    Returns:
+        WalletStatusResponse with wallet details or not_found status.
+    """
+    store = wallet.get_store()
+    record = store.get_by_username(username)
+
+    if record is None:
+        return WalletStatusResponse(
+            username=username,
+            status="not_found",
+        )
+
+    return WalletStatusResponse(
+        username=username,
+        wallet_id=record.get("wallet_id"),
+        address=record.get("address"),
+        chain_type=record.get("chain_type"),
+        created_at=record.get("created_at"),
+        attestation_hashes=record.get("attestation_hashes", []),
+        status="exists",
+    )
+
+
+# ── Jinja2 templates for server-rendered pages ───────────────────────────
+from fastapi.staticfiles import StaticFiles
+import os as _os
+
+_here = _os.path.dirname(_os.path.abspath(__file__))
+_root = _os.path.dirname(_here)
+
+_templates_path = _os.path.join(_root, "templates")
+_os.makedirs(_templates_path, exist_ok=True)
+templates = Jinja2Templates(directory=_templates_path)
+
+
+# ── Profile page (server-rendered) ───────────────────────────────────────
+
+
+@app.get("/u/{username}")
+async def profile_page(request: FastAPIRequest, username: str):
+    """Server-rendered candidate profile page.
+
+    Fetches score data and proof status for the given GitHub username,
+    then renders a shareable HTML profile page.
+    """
+    from datetime import datetime, timezone
+
+    try:
+        # ── Score the user ────────────────────────────────────────────────
+        activity_data = _get_github_client().get_user_activity(username)
+        score_result = scoring_engine.score_user(activity_data)
+
+        signal_scores = {}
+        for signal_name, signal_result in score_result.signal_scores.items():
+            signal_scores[signal_name] = {
+                "score": signal_result.score,
+                "confidence": signal_result.confidence,
+                "details": signal_result.details,
+            }
+
+        profile_name = score_result.details.get("profile_name", "legacy")
+
+        attestation_block = _build_attestation(
+            username=username,
+            overall_score=score_result.overall_score,
+            signal_scores=signal_scores,
+            risk_flags=score_result.risk_flags,
+            profile_name=profile_name,
+        )
+
+        # ── Proof status ──────────────────────────────────────────────────
+        proof_record = get_store().get_status_by_username(username)
+
+        proof_status_data = {
+            "status": proof_record.get("status", "unknown") if proof_record else "unknown",
+            "proof_id": proof_record.get("proof_id") if proof_record else None,
+            "created_at": proof_record.get("created_at") if proof_record else None,
+            "updated_at": proof_record.get("updated_at") if proof_record else None,
+            "tx_hash": proof_record.get("tx_hash") if proof_record else None,
+            "error": proof_record.get("error") if proof_record else None,
+        }
+
+        # ── Extract GitHub stats from activity_data ───────────────────────
+        gh_stats = {
+            "public_repos": activity_data.get("public_repos", 0),
+            "followers": activity_data.get("followers", 0),
+            "public_gists": activity_data.get("public_gists", 0),
+        }
+
+        # ── Wallet data ──────────────────────────────────────────────────
+        wallet_store = wallet.get_store()
+        wallet_record = wallet_store.get_by_username(username)
+
+        # ── Render template ───────────────────────────────────────────────
+        response = templates.TemplateResponse(
+            request,
+            "profile.html",
+            {
+                "username": username,
+                "overall_score": round(score_result.overall_score, 1),
+                "profile_name": profile_name,
+                "signal_scores": signal_scores,
+                "risk_flags": score_result.risk_flags,
+                "attestation": attestation_block,
+                "proof_status": proof_status_data,
+                "wallet": wallet_record,
+                "gh_stats": gh_stats,
+                "scored_at": datetime.now(timezone.utc).isoformat(),
+                "signal_display_names": {
+                    "commit_consistency": "Commit Consistency",
+                    "language_diversity": "Language Diversity",
+                    "issue_engagement": "Issue Engagement",
+                    "pr_patterns": "PR Patterns",
+                    "project_ownership": "Project Ownership",
+                    "review_patterns": "Review Patterns",
+                    "response_time": "Response Time",
+                    "readme_quality": "README Quality",
+                    "commit_semantics": "Commit Semantics",
+                    "cicd_maturity": "CI/CD Maturity",
+                    "contribution_consistency": "Contribution Consistency",
+                    "ai_usage_patterns": "AI Usage Patterns",
+                },
+            },
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+        return response
+
+    except ValueError as e:
+        # User not found or similar
+        return templates.TemplateResponse(
+            request,
+            "404.html",
+            {"username": username, "error": str(e)},
+            status_code=404,
+        )
+    except Exception as e:
+        logger.exception("profile_page_failed: username=%s", username)
+        return templates.TemplateResponse(
+            request,
+            "404.html",
+            {"username": username, "error": "An error occurred processing this profile."},
+            status_code=500,
+        )
+
+
+# ── Static frontend ──────────────────────────────────────────────────────
+
+_static_path = _os.path.join(_root, "static")
+_os.makedirs(_static_path, exist_ok=True)
+_index_src = _os.path.join(_root, "index.html")
+_index_dst = _os.path.join(_static_path, "index.html")
+if _os.path.isfile(_index_src) and not _os.path.isfile(_index_dst):
+    import shutil
+    shutil.copy2(_index_src, _index_dst)
+
+app.mount("/", StaticFiles(directory=_static_path, html=True), name="frontend")
 
 
 if __name__ == "__main__":
