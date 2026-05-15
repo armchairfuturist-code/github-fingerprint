@@ -149,6 +149,8 @@ Detects AI-generated commit patterns by analyzing commit message style, diff, an
 
 ## Quick Start
 
+## Quick Start
+
 ### Via CLI
 
 ```bash
@@ -163,6 +165,30 @@ gf prove torvalds --zk
 
 # Verify an existing attestation
 gf verify torvalds
+
+# View a candidate profile
+gf profile torvalds
+
+# Start the web server
+gf serve
+```
+
+### Via Web UI
+
+```bash
+pip install -r requirements.txt
+export GITHUB_TOKEN="ghp_your_token_here"
+# Optional: wallet credentials — wallet creation gracefully degrades when absent
+export PRIVY_APP_ID="your_privy_app_id"
+export PRIVY_APP_SECRET="your_privy_app_secret"
+# Optional: attestation signing key — auto-generated if absent
+export ATTEST_PRIVATE_KEY=""
+python -m api.main
+```
+
+Open http://localhost:8000 -> enter a GitHub username -> get your verifiable skill profile.
+
+> **Wallet note:** Setting `PRIVY_APP_ID` and `PRIVY_APP_SECRET` enables implicit embedded wallet creation on first analysis — no seed phrases, no browser extensions. When these are absent, wallet creation is gracefully disabled and attestation hashes are not stored in a data backpack. See [`.env.example`](.env.example) for all available environment variables. (feat(profile): complete M003 Candidate Profile and update project state)
 ```
 
 ### Via API

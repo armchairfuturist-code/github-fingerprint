@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M002/S05/T02",
+  "timestamp": 1778579965389,
+  "passed": false,
+  "discoverySource": "preference",
+  "checks": [
+    {
+      "command": "pytest",
+      "exitCode": 2,
+      "durationMs": 939,
+      "verdict": "fail"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

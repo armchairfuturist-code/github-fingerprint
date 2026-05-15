@@ -1,6 +1,20 @@
 
 # ── GSD baseline (auto-generated) ──
-.gsd
+# ── GSD artifacts (selective) ──
+.gsd/gsd.db*
+.gsd/runtime/
+.gsd/activity/
+.gsd/worktrees/
+.gsd/exec/
+.gsd/audit/
+.gsd/journal/
+.gsd/safety/
+.gsd/state-manifest.json
+.gsd/metrics.json
+.gsd/notifications.jsonl
+.gsd/event-log.jsonl
+.gsd/doctor-history.jsonl
+.gsd/last-snapshot.md
 .gsd-id
 .mcp.json
 .bg-shell/
@@ -30,4 +44,9 @@ coverage/
 .cache/
 tmp/
 wallet_store.json
-scripts/
+# ── Security: never commit signing keys ──
+.keys/
+
+# ── Stale/duplicate artifacts ──
+attestation/
+.qwen/
