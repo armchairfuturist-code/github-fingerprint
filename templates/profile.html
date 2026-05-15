@@ -172,12 +172,12 @@
             <div class="proof-card status-{{ ps.status }}" onclick="toggleProofViewer(event)">
                 <div class="proof-header-row">
                     <span class="proof-badge proof-{{ ps.status }}">
-                        {% if ps.status == "unknown" %}>/dev/null 2>&1 &#9679; Not Started
-                        {% elif ps.status == "pending" %}>/dev/null 2>&1 &#9687; Pending
-                        {% elif ps.status == "proof_generating" %}>/dev/null 2>&1 &#9678; Generating>/dev/null 2>&1 &#8230;
-                        {% elif ps.status == "proof_generated" %}>/dev/null 2>&1 &#10003; Proof Ready
-                        {% elif ps.status == "on_chain" %}>/dev/null 2>&1 &#8852; On Chain
-                        {% elif ps.status == "failed" %}>/dev/null 2>&1 &#10005; Failed
+                        {% if ps.status == "unknown" %}&#9679; Not Started
+                        {% elif ps.status == "pending" %}&#9687; Pending
+                        {% elif ps.status == "proof_generating" %}&#9678; Generating &#8230;
+                        {% elif ps.status == "proof_generated" %}&#10003; Proof Ready
+                        {% elif ps.status == "on_chain" %}&#8852; On Chain
+                        {% elif ps.status == "failed" %}&#10005; Failed
                         {% else %}{{ ps.status }}
                         {% endif %}
                     </span>
@@ -223,6 +223,18 @@
                             <span class="proof-viewer-value proof-mono">{{ ps.tx_hash }}</span>
                         </div>
                         {% endif %}
+                        {% if ps.proof_path %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Proof Path</span>
+                            <span class="proof-viewer-value proof-mono">{{ ps.proof_path }}</span>
+                        </div>
+                        {% endif %}
+                        {% if ps.verifying_contract %}
+                        <div class="proof-viewer-row">
+                            <span class="proof-viewer-label">Verifying Contract</span>
+                            <span class="proof-viewer-value proof-mono">{{ ps.verifying_contract }}</span>
+                        </div>
+                        {% endif %}
                         {% if ps.error %}
                         <div class="proof-viewer-row">
                             <span class="proof-viewer-label">Error</span>
@@ -232,7 +244,7 @@
                     </div>
 
                     <button class="proof-copy-btn" onclick="copyProofData(event)" data-proof='{{ ps | tojson | safe }}'>
-                        >/dev/null 2>&1 &#128203; Copy Proof Data
+                        &#128203; Copy Proof Data
                     </button>
                 </div>
             </div>

@@ -15,9 +15,9 @@ A portable, cryptographically verifiable credential that lets any GitHub user pr
 
 ## Current State
 
-**M001 complete.** Deep GitHub mining pipeline delivers README content, CI/CD detection, contribution calendar analysis, commit semantics, and AI usage patterns. Role-adaptive scoring engine supports engineering, marketing, and non-technical profiles with configurable signal weights and confidence thresholds. Every score carries an independently verifiable Ed25519 signature with a /verify endpoint for third-party authentication. Full end-to-end frontend: enter username → deep crawl → score → attest → share. Returning users benefit from incremental CrawlCache (pushed_at-based stale detection). 198 tests pass covering crawler, scoring, profiles, attestation, API, and integration.
+**M003 complete.** Shareable candidate profile pages at /u/{username} with overall score ring, 12 signal breakdown bars, Ed25519 attestation badge, ZK proof status indicator (6 lifecycle states), and GitHub stats. GitHub opt-in flow from landing page → username input → crawl/score → auto-redirect to profile. Wallet abstraction via Privy — implicit wallet creation, no seed phrases, no MetaMask, data backpack for attestation hashes, graceful degradation when credentials unavailable. ZK proof viewer with expandable metadata panel (proof_id, timestamps, tx_hash, error, proof_path, verifying_contract) and Copy Proof Data button — 23 template rendering tests cover all lifecycle states. 372 tests pass.
 
-**M002 complete.** Rust scoring library ports all 12 signals with zero-diff exact match against the Python reference, validated via dedicated cross-comparison crate (scoring-cross-compare) across 3 fixtures. SP1 zkVM proving pipeline is code-complete: no_std scoring-sp1-core, guest program, host script (local CPU + Succinct Prover Network), and Python prover CLI wrapper. SP1Verifier.sol Groth16 verifier contract compiled (2294 bytes, solc 0.8.28 viaIR) with VKey registry for multi-program support, deploy script and deterministic wallet ready. Async Celery/Redis proof queue wired into /score endpoint with 3-retry exponential backoff, jitter, and at-least-once delivery. GET /proof/{username}/status endpoint tracks full lifecycle (pending → proof_generating → proof_generated → on_chain → failed). Ed25519 attestation always returned immediately — ZK proving failure never blocks users. 286+ tests pass. CI pipeline (3-stage: Rust SP1 → Python → Contracts) configured for ubuntu-latest.
+**M003 complete.** Rust scoring library ports all 12 signals with zero-diff exact match against the Python reference, validated via dedicated cross-comparison crate (scoring-cross-compare) across 3 fixtures. SP1 zkVM proving pipeline is code-complete: no_std scoring-sp1-core, guest program, host script (local CPU + Succinct Prover Network), and Python prover CLI wrapper. SP1Verifier.sol Groth16 verifier contract compiled (2294 bytes, solc 0.8.28 viaIR) with VKey registry for multi-program support, deploy script and deterministic wallet ready. Async Celery/Redis proof queue wired into /score endpoint with 3-retry exponential backoff, jitter, and at-least-once delivery. GET /proof/{username}/status endpoint tracks full lifecycle (pending → proof_generating → proof_generated → on_chain → failed). Ed25519 attestation always returned immediately — ZK proving failure never blocks users. 286+ tests pass. CI pipeline (3-stage: Rust SP1 → Python → Contracts) configured for ubuntu-latest.
 
 **Note:** Two M002 success criteria have environmental gaps — SP1 cargo prove build requires Linux/macOS (CI pipeline on ubuntu-latest), and SP1Verifier.sol contract deployment needs ~0.01 Base Sepolia ETH for wallet funding. Both are code-complete and documented; neither requires remediation slices.
 
@@ -33,8 +33,8 @@ Candidate profile pages, recruiter marketplace, ZK proof viewer, and matchmaking
 - **Verification layer:** Base L2 — SP1Verifier.sol (Groth16 verifier contract) with VKey registry for multi-program support. ~$0.008/proof verification cost. Deploy script and deterministic wallet ready.
 - **Async queue:** Celery with Redis — proof generation tasks with 3-retry exponential backoff, jitter, acks_late + reject_on_worker_lost. Proof lifecycle tracked via in-memory ProofStatusStore (thread-safe singleton, upgradable to Redis).
 - **Data layer:** JSON-per-user CrawlCache for incremental crawl freshness. (Future: PostgreSQL for attestations, profiles, user state, recruiter data.)
-- **Frontend:** Thin web UI — crawl→score→attest→verify flow. (Future: candidate profile pages, recruiter dashboard, ZK proof viewer.)
-- **Wallet abstraction (future):** Invisible wallet for non-crypto users (Web3Auth/Privy-like pattern).
+- **Frontend:** Thin web UI — landing page with opt-in crawl + progress overlay, server-rendered profile page with score breakdown, attestation badge, ZK proof viewer, and Copy Proof Data. (Future: recruiter dashboard.)
+- **Wallet abstraction:** Privy-based implicit wallet creation on first analysis — no seed phrases, no browser extensions. Data backpack stores attestation hashes per user. Graceful degradation when credentials unavailable.
 
 ## Capability Contract
 
@@ -44,6 +44,6 @@ See `.gsd/REQUIREMENTS.md` for the explicit capability contract, requirement sta
 
 - [x] **M001: Deep Pipeline & Attested Scores** — Deep GitHub mining, role-adaptive scoring, Ed25519 attestation. Shippable standalone. ✓ Complete
 - [x] **M002: ZK Proving Layer** — Rust scoring lib, SP1 prover pipeline, Base verifier contract. Async proving with Ed25519 fallback. ✓ Complete
-- [ ] M003: Candidate Profile & Sharing — Shareable profile pages, ZK proof viewer, wallet abstraction, GitHub opt-in/notifications.
-- [ ] M004: Recruiter Dashboard & Marketplace — Search/filter, budget/scope tiers, pay-per-verification pricing.
-- [ ] M005: Matchmaking & Notifications — Automated candidate-role matching, employer-initiated interview requests via GitHub.
+- [x] **M003: Candidate Profile & Sharing** — Shareable profile pages, ZK proof viewer, wallet abstraction, GitHub opt-in/notifications. ✓ Complete
+- [ ] **M004: Recruiter Dashboard & Marketplace** — Search/filter, budget/scope tiers, pay-per-verification pricing.
+- [ ] **M005: Matchmaking & Notifications** — Automated candidate-role matching, employer-initiated interview requests via GitHub.

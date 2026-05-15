@@ -2,7 +2,7 @@
 FastAPI REST endpoint for GitHub fingerprint scoring.
 """
 import logging
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi import Request as FastAPIRequest
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -154,7 +154,7 @@ async def health_check():
 
 
 @app.post("/score", response_model=ScoreResponse)
-async def score_user(request: ScoreRequest):
+async def score_user(request: ScoreRequest, background_tasks: BackgroundTasks = BackgroundTasks()):
     """
     Score a GitHub user based on their activity.
 
@@ -220,8 +220,9 @@ async def score_user(request: ScoreRequest):
             # Proof enqueue failure does NOT block the score response.
             # Ed25519 attestation is returned regardless.
 
-        # ── Wallet creation (non-blocking) ────────────────────────────────
-        _create_wallet_for_user(request.username, attestation_block)
+        # ── Wallet creation (async background task) ──────────────────────
+        background_tasks.add_task(_create_wallet_for_user, request.username, attestation_block)
+        logger.info("wallet_creation_enqueued: user=%s background=True", request.username)
 
         return ScoreResponse(
             username=request.username,
@@ -245,6 +246,7 @@ async def score_user(request: ScoreRequest):
 @app.get("/score/{username}")
 async def score_user_get(
     username: str,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     weights: Optional[str] = Query(None, description="JSON string of weights"),
     role: Optional[str] = Query(None, description="Role profile name (engineering, marketing, non-technical)"),
 ):
@@ -266,7 +268,7 @@ async def score_user_get(
             weights_dict = json.loads(weights)
 
         request = ScoreRequest(username=username, weights=weights_dict, role=role)
-        return await score_user(request)
+        return await score_user(request, background_tasks=background_tasks)
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid weights JSON")
@@ -784,13 +786,17 @@ async def profile_page(request: FastAPIRequest, username: str):
         # ── Proof status ──────────────────────────────────────────────────
         proof_record = get_store().get_status_by_username(username)
 
+        proof_metadata = (proof_record.get("metadata") or {}) if proof_record else {}
+
         proof_status_data = {
             "status": proof_record.get("status", "unknown") if proof_record else "unknown",
             "proof_id": proof_record.get("proof_id") if proof_record else None,
             "created_at": proof_record.get("created_at") if proof_record else None,
             "updated_at": proof_record.get("updated_at") if proof_record else None,
             "tx_hash": proof_record.get("tx_hash") if proof_record else None,
+            "proof_path": proof_record.get("proof_path") if proof_record else None,
             "error": proof_record.get("error") if proof_record else None,
+            "verifying_contract": proof_metadata.get("verifying_contract"),
         }
 
         # ── Extract GitHub stats from activity_data ───────────────────────

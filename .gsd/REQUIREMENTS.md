@@ -4,22 +4,6 @@ This file is the explicit capability and coverage contract for the project.
 
 ## Active
 
-### R006 — Wallet abstraction with implicit wallet creation on first analysis — no seed phrases, no browser extensions
-- Class: core-capability
-- Status: active
-- Description: Wallet abstraction with implicit wallet creation on first analysis — no seed phrases, no browser extensions
-- Why it matters: Crypto-native UX (MetaMask, seed phrases) destroys mainstream adoption. Wallet abstraction is critical for non-crypto users to benefit from on-chain verification.
-- Source: M003 context draft
-- Primary owning slice: M003/S03
-
-### R007 — ZK proof badge and expandable viewer on profile page showing proof metadata
-- Class: differentiator
-- Status: active
-- Description: ZK proof badge and expandable viewer on profile page showing proof metadata
-- Why it matters: The ZK proof viewer makes the zero-knowledge claim visible. Without it, the proving layer is invisible to end users. The visual badge is a trust signal.
-- Source: M003 context draft
-- Primary owning slice: M003/S04
-
 ## Validated
 
 ### R001 — Untitled
@@ -60,6 +44,25 @@ This file is the explicit capability and coverage contract for the project.
 - Primary owning slice: M003/S02
 - Validation: S02 delivers: landing page with username input + Analyze button triggers GET /score/{username} pipeline and redirects to /u/{username} on success. Progress overlay shows 4 status steps (Fetch → Score → Attest → Profile) with elapsed timer. Error handling shows red banner with retry. Existing Score/Match tools preserved in collapsible Advanced section. No new backend endpoints needed — reuses existing /score and /u routes.
 
+### R006 — Wallet abstraction with implicit wallet creation on first analysis — no seed phrases, no browser extensions
+- Class: core-capability
+- Status: validated
+- Description: Wallet abstraction with implicit wallet creation on first analysis — no seed phrases, no browser extensions
+- Why it matters: Crypto-native UX (MetaMask, seed phrases) destroys mainstream adoption. Wallet abstraction is critical for non-crypto users to benefit from on-chain verification.
+- Source: M003 context draft
+- Primary owning slice: M003/S03
+- Validation: 19/19 wallet tests pass covering store CRUD, provider API, wallet API endpoint, and score-flow integration. Wallet creation runs as async background task via FastAPI BackgroundTasks. `.env.example` documents PRIVY_APP_ID and PRIVY_APP_SECRET. Graceful degradation active when Privy credentials are unavailable.
+- Notes: S03 complete: wallet abstraction with implicit wallet creation, async background task, data backpack store, and documented env vars. 19/19 wallet tests pass.
+
+### R007 — ZK proof badge and expandable viewer on profile page showing proof metadata
+- Class: differentiator
+- Status: validated
+- Description: ZK proof badge and expandable viewer on profile page showing proof metadata
+- Why it matters: The ZK proof viewer makes the zero-knowledge claim visible. Without it, the proving layer is invisible to end users. The visual badge is a trust signal.
+- Source: M003 context draft
+- Primary owning slice: M003/S04
+- Notes: S04 complete: proof badge with status-specific text and symbols for all 6 lifecycle states, expandable viewer with metadata (proof_id, timestamps, tx_hash, error, proof_path, verifying_contract), Copy Proof Data button, graceful degradation when no proof record exists. 23 template rendering tests pass.
+
 ## Deferred
 
 ## Out of Scope
@@ -73,12 +76,12 @@ This file is the explicit capability and coverage contract for the project.
 | R003 | core-capability | validated | none | none | S03 delivers full Ed25519 attestation pipeline: sign_score, verify_attestation, and load_or_generate_signing_key in attest/ module; attestation blocks (signature, public_key, signed_payload, signed_at) in /score and /match responses via _build_attestation helper; POST /verify endpoint for third-party verification returning {valid, payload, error}; graceful degradation: omitted attestation block + warning log when key is unavailable. 161 tests pass including 18 attestation unit tests, 5 attestation API integration tests, and /verify tests (valid round-trip, tamper rejection, missing-field 422). |
 | R004 | core-capability | validated | M003/S01 | none | S01 delivers shareable profile page at /u/{username} with overall score ring, 12 signal breakdown bars with labels, Ed25519 attestation badge (verified/no-attestation states), ZK proof status indicator (all 6 states), GitHub stats summary (repos, followers). Server-rendered for SEO, shareable via unique URL, Cache-Control: public max-age=300. Dark-themed design system. 7 tests pass including 200/404/caching/stats/attestation verification. |
 | R005 | primary-user-loop | validated | M003/S02 | none | S02 delivers: landing page with username input + Analyze button triggers GET /score/{username} pipeline and redirects to /u/{username} on success. Progress overlay shows 4 status steps (Fetch → Score → Attest → Profile) with elapsed timer. Error handling shows red banner with retry. Existing Score/Match tools preserved in collapsible Advanced section. No new backend endpoints needed — reuses existing /score and /u routes. |
-| R006 | core-capability | active | M003/S03 | none | unmapped |
-| R007 | differentiator | active | M003/S04 | none | unmapped |
+| R006 | core-capability | validated | M003/S03 | none | 19/19 wallet tests pass covering store CRUD, provider API, wallet API endpoint, and score-flow integration. Wallet creation runs as async background task via FastAPI BackgroundTasks. `.env.example` documents PRIVY_APP_ID and PRIVY_APP_SECRET. Graceful degradation active when Privy credentials are unavailable. |
+| R007 | differentiator | validated | M003/S04 | none | unmapped |
 
 ## Coverage Summary
 
-- Active requirements: 2
-- Mapped to slices: 2
-- Validated: 5 (R001, R002, R003, R004, R005)
+- Active requirements: 0
+- Mapped to slices: 0
+- Validated: 7 (R001, R002, R003, R004, R005, R006, R007)
 - Unmapped active requirements: 0
