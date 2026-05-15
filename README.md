@@ -1,9 +1,9 @@
-﻿# GitHub Fingerprint
+# GitHub Fingerprint
 
 > **From GitHub activity to ZK-proven skill profile. No trust required.**
 > No timed coding tests. No keyword-stuffed resumes. Just proven work history, cryptographically verified.
 
-[![Tests](https://img.shields.io/badge/tests-319_passing-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-372_passing-brightgreen.svg)](#)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](#)
 [![Rust](https://img.shields.io/badge/rust-1.80+-orange.svg)](#)
 [![SP1](https://img.shields.io/badge/zkVM-SP1-purple.svg)](#)
@@ -149,8 +149,6 @@ Detects AI-generated commit patterns by analyzing commit message style, diff, an
 
 ## Quick Start
 
-## Quick Start
-
 ### Via CLI
 
 ```bash
@@ -173,6 +171,8 @@ gf profile torvalds
 gf serve
 ```
 
+> **Note:** The `gf` CLI is under active development. See the [contributing guide](#) to build from source.
+
 ### Via Web UI
 
 ```bash
@@ -188,8 +188,7 @@ python -m api.main
 
 Open http://localhost:8000 -> enter a GitHub username -> get your verifiable skill profile.
 
-> **Wallet note:** Setting `PRIVY_APP_ID` and `PRIVY_APP_SECRET` enables implicit embedded wallet creation on first analysis — no seed phrases, no browser extensions. When these are absent, wallet creation is gracefully disabled and attestation hashes are not stored in a data backpack. See [`.env.example`](.env.example) for all available environment variables. (feat(profile): complete M003 Candidate Profile and update project state)
-```
+> **Wallet note:** Setting `PRIVY_APP_ID` and `PRIVY_APP_SECRET` enables implicit embedded wallet creation on first analysis — no seed phrases, no browser extensions. When these are absent, wallet creation is gracefully disabled and attestation hashes are not stored in a data backpack. See [`.env.example`](.env.example) for all available environment variables.
 
 ### Via API
 
@@ -204,9 +203,39 @@ curl https://api.githubfingerprint.com/v1/attest/torvalds
 curl https://api.githubfingerprint.com/v1/verify/torvalds
 ```
 
-### Via Web
+> **Note:** The `githubfingerprint.com` domain and `/v1/` API are not yet live — these are planned endpoints for the upcoming launch.
 
-Visit [githubfingerprint.com/u/torvalds](https://githubfingerprint.com) for a rendered, shareable profile page at `/u/{username}`.
+---
+## Milestones
+
+- [x] **M001: Deep Pipeline & Attested Scores** — Deep GitHub mining, 12-signal role-adaptive scoring, Ed25519 attestation, /verify endpoint.
+- [x] **M002: ZK Proving Layer** — Rust scoring lib (zero-diff vs Python), SP1 zkVM, Base L2 verifier contract (2294 bytes).
+- [x] **M003: Candidate Profile & Sharing** — Profile pages at /u/{username}, opt-in crawl flow, Privy wallet abstraction, ZK proof viewer.
+- [ ] **M004: Recruiter Dashboard & Marketplace** — Search/filter, budget/scope tiers, pay-per-verification pricing.
+- [ ] **M005: Matchmaking & Notifications** — Automated candidate-role matching, employer-initiated interview requests via GitHub.
+
+---
+
+## In Progress
+
+What's being built next — and how you can help shape it.
+
+### M004: Recruiter Dashboard & Marketplace
+
+The biggest open area is **working directly with recruiters** to build what they actually need. If you're a recruiter or know one who'd be interested, we'd love to collaborate. Current thinking:
+
+- **Search & filter** candidates by signals, role type, verification tier
+- **Pay-per-verification** pricing with depth tiers (Basic / Standard / Deep)
+- **Budget/scope refinement** — guide recruiters to the right tier for their needs
+- **On-chain verification** — every score is independently verifiable, no trust required
+
+Key questions we want to answer with real recruiter input:
+- What pricing model works best? Pay-per-verification, subscription, or credits?
+- Do recruiters want a dashboard, an API, or both?
+- What level of candidate detail is worth paying for?
+- What payment method — Stripe, crypto, or both?
+
+> **Want to help?** Open an issue or reach out — we're looking for design partners to build M004 alongside real users.
 
 ---
 
